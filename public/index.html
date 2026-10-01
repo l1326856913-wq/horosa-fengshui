@@ -315,7 +315,10 @@
                     body: JSON.stringify({ heading: currentHeading, year: new Date().getFullYear() })
                 });
                 
-                if (!horosaRes.ok) throw new Error("后端排盘接口请求失败");
+                if (!horosaRes.ok) {
+                    const errText = await horosaRes.text();
+                    throw new Error(`后端排盘接口抛出 HTTP ${horosaRes.status}: ${errText.substring(0, 50)}...`);
+                }
                 const horosaData = await horosaRes.json();
                 
                 if (horosaData.error) throw new Error("排盘引擎报错: " + horosaData.error);
