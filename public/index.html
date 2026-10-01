@@ -45,23 +45,48 @@
         .center-reticle {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 200px; height: 200px; border: 1px solid rgba(212, 175, 55, 0.5); border-radius: 50%;
-            display: flex; justify-content: center; align-items: center;
+            display: flex; justify-content: center; align-items: center; transition: all 0.3s;
         }
         .center-reticle::before, .center-reticle::after {
             content: ''; position: absolute; background: rgba(212, 175, 55, 0.8);
         }
         .center-reticle::before { width: 10px; height: 1px; }
         .center-reticle::after { width: 1px; height: 10px; }
+        
+        .center-reticle.locked {
+            border-color: #34c759; box-shadow: 0 0 15px rgba(52, 199, 89, 0.5);
+        }
+        .center-reticle.locked::before, .center-reticle.locked::after { background: #34c759; }
 
         .bottom-panel {
             margin-bottom: var(--safe-bottom); margin-left: 16px; margin-right: 16px; padding: 20px;
             background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             border-radius: 16px; border: 1px solid rgba(212, 175, 55, 0.3);
-            min-height: 120px; max-height: 30vh; overflow-y: auto; pointer-events: auto;
+            display: flex; flex-direction: column;
+            min-height: 120px; max-height: 40vh; pointer-events: auto;
         }
 
-        .typewriter { font-size: 1rem; line-height: 1.6; color: var(--text-main); }
-        .typewriter span.gold { color: var(--gold); }
+        #log-panel {
+            flex: 1; overflow-y: auto; font-size: 0.95rem; line-height: 1.6; color: var(--text-main);
+            scroll-behavior: smooth; margin-bottom: 10px;
+        }
+        .chat-msg { margin-bottom: 12px; }
+        .chat-msg.system-log { color: #888; font-size: 0.85rem; }
+        .chat-msg.user { color: #fff; background: rgba(212, 175, 55, 0.2); padding: 8px 12px; border-radius: 8px; display: inline-block; }
+        .chat-msg.assistant { color: var(--text-main); }
+        .gold { color: var(--gold); }
+
+        #chat-input-area {
+            display: none; gap: 8px; margin-top: auto;
+        }
+        #chat-input-area input {
+            flex: 1; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.5); 
+            border: 1px solid rgba(212, 175, 55, 0.5); color: white; outline: none;
+        }
+        #chat-input-area button {
+            padding: 10px 16px; border-radius: 8px; background: var(--gold); color: #000; 
+            font-weight: bold; border: none; cursor: pointer;
+        }
 
         #auth-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000;
@@ -88,12 +113,19 @@
         }
         .provider-select option { background: #000; }
 
-        /* 设置面板 */
         .settings-btn {
             position: absolute; top: 16px; right: 16px; width: 32px; height: 32px;
             background: transparent; border: none; color: var(--gold); font-size: 1.5rem;
             cursor: pointer; pointer-events: auto; z-index: 10; display: flex; align-items: center; justify-content: center;
         }
+        
+        .reset-btn {
+            position: absolute; top: 16px; left: 16px; width: 40px; height: 40px;
+            background: rgba(0,0,0,0.6); border: 1px solid var(--gold); border-radius: 50%;
+            color: var(--gold); font-size: 1.2rem; cursor: pointer; display: none; 
+            pointer-events: auto; z-index: 10; align-items: center; justify-content: center;
+        }
+
         #settings-modal {
             display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); z-index: 999; justify-content: center; align-items: center; pointer-events: auto;
@@ -115,34 +147,25 @@
 </head>
 <body>
 
-    <!-- 授权层 -->
     <div id="auth-overlay">
         <h1 style="color: var(--gold); font-weight: 300;">Horosa AR</h1>
         <p style="color: #888;">需要相机与罗盘权限</p>
         <button class="btn-gold" id="start-btn">开启堪舆</button>
     </div>
 
-    <!-- 视频流 -->
     <video id="camera-view" autoplay playsinline muted></video>
     <canvas id="capture-canvas"></canvas>
 
-    <!-- 设置按钮与面板 -->
+    <button class="reset-btn" id="reset-btn" title="重新勘测">🔄</button>
     <button class="settings-btn" id="open-settings-btn">⚙️</button>
+    
     <div id="settings-modal">
         <div class="settings-content">
             <h2>API Key 设置 (本地保存)</h2>
-            <div class="input-group">
-                <label>Gemini API Key</label>
-                <input type="password" id="key-gemini" placeholder="AIzaSy...">
-            </div>
-            <div class="input-group">
-                <label>DeepSeek API Key</label>
-                <input type="password" id="key-deepseek" placeholder="sk-...">
-            </div>
-            <div class="input-group">
-                <label>Zhipu GLM API Key</label>
-                <input type="password" id="key-glm" placeholder="...">
-            </div>
+            <div class="input-group"><label>Gemini API Key</label><input type="password" id="key-gemini" placeholder="AIzaSy..."></div>
+            <div class="input-group"><label>DeepSeek API Key</label><input type="password" id="key-deepseek" placeholder="sk-..."></div>
+            <div class="input-group"><label>Zhipu GLM API Key</label><input type="password" id="key-glm" placeholder="..."></div>
+            <div class="input-group"><label>高德地图 Web API Key</label><input type="password" id="key-gaode" placeholder="可选，用于大峦头分析"></div>
             <div class="btn-row">
                 <button class="btn-small" id="close-settings-btn">取消</button>
                 <button class="btn-small btn-solid" id="save-settings-btn">保存</button>
@@ -150,7 +173,6 @@
         </div>
     </div>
 
-    <!-- AR HUD -->
     <div id="hud-container">
         <div class="top-panel">
             <div class="status-indicator" id="status-dot"></div>
@@ -170,120 +192,266 @@
 
         <div class="center-reticle" id="reticle"></div>
 
-        <div class="bottom-panel" id="log-panel">
-            <div class="typewriter" id="typewriter-text">等待罗盘稳定...</div>
+        <div class="bottom-panel">
+            <div id="log-panel">
+                <div class="chat-msg system-log">等待罗盘稳定... 当您停顿 1.5 秒时将自动锁定画面进行深度分析。</div>
+            </div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="有任何疑问或需要化解？直接询问大师...">
+                <button id="send-chat-btn">发送</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // 核心提示词升级，支持大小峦头合参
         const SYSTEM_INSTRUCTION = `你是一位精通中国传统堪舆学（三元玄空飞星、八宅明镜、形势峦头）的建筑环境学大师。
-系统会给你输入两张图：【图1】是手机摄像头拍下的室内/实景照片（代表小峦头）；如果有【图2】，则是基于用户 GPS 定位获取的周边街道俯瞰地图（代表大峦头）。
-你的分析必须极其专业，融合大小峦头与理气：
-1. 【大峦头（外局）】：如果提供了地图，观察房屋周边的“水”（现代城市的道路即是水）、“山”（周边高大建筑）。判断是否有路冲煞、反弓水、玉带环腰等外部大格局。
-2. 【小峦头（内局）】：审视实景照片，寻找门、窗、走廊、横梁、尖角煞等内部形煞。
-3. 【高阶理气排盘】：在心中排出九宫飞星盘。结合大峦头的道路走向与小峦头的窗户位置，判断星盘的“当旺向星”是否见水（路/窗），“当旺山星”是否见山（高楼/实墙），评判“收山出煞”是否得当。
-4. 【化解与布局】：根据现代室内设计美学，提供内外局结合的化解或催旺建议。
-输出要求：排版清晰，条理分明，大师风范。`;
+系统会给你输入两张图：【图1】是手机摄像头拍下的室内实景（小峦头）；如果有【图2】，则是周边街道俯瞰地图（大峦头）。
+你的分析流程必须极其专业，并分步骤与用户互动：
+1. 观察并抛出断语：结合提供的绝对理气数据（坐向、星盘），指出图中的主要煞气或吉位。
+2. 留白与互动：在首次分析结尾，如果你看到不确定的形煞（比如看不清窗外是否有高压线，或不知道门后是什么），主动向用户提问。
+3. 对答如流：如果是用户的后续追问，请针对性地解答，并给出切实可行的现代美学化解方案。`;
 
         const video = document.getElementById('camera-view');
         const canvas = document.getElementById('capture-canvas');
         const headingVal = document.getElementById('heading-val');
-        const typewriterText = document.getElementById('typewriter-text');
-        const startBtn = document.getElementById('start-btn');
-        const authOverlay = document.getElementById('auth-overlay');
-        const statusDot = document.getElementById('status-dot');
-        const providerSelect = document.getElementById('ai-provider');
         const logPanel = document.getElementById('log-panel');
+        const chatInputArea = document.getElementById('chat-input-area');
+        const chatInput = document.getElementById('chat-input');
+        const sendChatBtn = document.getElementById('send-chat-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const reticle = document.getElementById('reticle');
         
         const settingsModal = document.getElementById('settings-modal');
-        const openSettingsBtn = document.getElementById('open-settings-btn');
-        const closeSettingsBtn = document.getElementById('close-settings-btn');
-        const saveSettingsBtn = document.getElementById('save-settings-btn');
-
-        document.getElementById('key-gemini').value = localStorage.getItem('GEMINI_KEY') || '';
-        document.getElementById('key-deepseek').value = localStorage.getItem('DEEPSEEK_KEY') || '';
-        document.getElementById('key-glm').value = localStorage.getItem('GLM_KEY') || '';
-        
-        // 新增地图 Key
-        const mapGroup = document.createElement('div');
-        mapGroup.className = 'input-group';
-        mapGroup.innerHTML = '<label>高德地图 Web API Key (可选)</label><input type="password" id="key-gaode" placeholder="用于获取周边大峦头地形...">';
-        document.querySelector('.settings-content').insertBefore(mapGroup, document.querySelector('.btn-row'));
-        document.getElementById('key-gaode').value = localStorage.getItem('GAODE_KEY') || '';
-
-        openSettingsBtn.onclick = () => settingsModal.style.display = 'flex';
-        closeSettingsBtn.onclick = () => settingsModal.style.display = 'none';
-        saveSettingsBtn.onclick = () => {
-            localStorage.setItem('GEMINI_KEY', document.getElementById('key-gemini').value.trim());
-            localStorage.setItem('DEEPSEEK_KEY', document.getElementById('key-deepseek').value.trim());
-            localStorage.setItem('GLM_KEY', document.getElementById('key-glm').value.trim());
-            localStorage.setItem('GAODE_KEY', document.getElementById('key-gaode').value.trim());
+        document.getElementById('open-settings-btn').onclick = () => settingsModal.style.display = 'flex';
+        document.getElementById('close-settings-btn').onclick = () => settingsModal.style.display = 'none';
+        document.getElementById('save-settings-btn').onclick = () => {
+            ['gemini', 'deepseek', 'glm', 'gaode'].forEach(k => {
+                localStorage.setItem(k.toUpperCase()+'_KEY', document.getElementById(`key-${k}`).value.trim());
+            });
             settingsModal.style.display = 'none';
         };
 
-        function getApiKey(provider) {
-            if(provider === 'gemini') return localStorage.getItem('GEMINI_KEY');
-            if(provider === 'deepseek') return localStorage.getItem('DEEPSEEK_KEY');
-            if(provider === 'glm') return localStorage.getItem('GLM_KEY');
-            return null;
-        }
+        ['gemini', 'deepseek', 'glm', 'gaode'].forEach(k => {
+            document.getElementById(`key-${k}`).value = localStorage.getItem(k.toUpperCase()+'_KEY') || '';
+        });
 
         let currentHeading = 0;
         let smoothedHeading = 0;
-        const EMA_ALPHA = 0.1; 
-        
         let isAnalyzing = false;
         let stableTimer = null;
         let lastStableHeading = null;
-        const STABLE_THRESHOLD = 3; 
-        const STABLE_TIME = 1500; 
+        let userLat = null, userLng = null;
+        let chatHistory = []; // 保存通用对话历史
 
-        // GPS 定位变量
-        let userLat = null;
-        let userLng = null;
+        const mountains = ["子","癸","丑","艮","寅","甲","卯","乙","辰","巽","巳","丙","午","丁","未","坤","申","庚","酉","辛","戌","乾","亥","壬"];
+        function getMountain(heading) { return mountains[Math.floor(((heading + 7.5) % 360) / 15)]; }
 
-        const mountains = ["子", "癸", "丑", "艮", "寅", "甲", "卯", "乙", "辰", "巽", "巳", "丙", "午", "丁", "未", "坤", "申", "庚", "酉", "辛", "戌", "乾", "亥", "壬"];
-        function getMountain(heading) {
-            let index = Math.floor(((heading + 7.5) % 360) / 15);
-            return mountains[index];
+        function appendLog(text, type='system-log', isHtml=false) {
+            const div = document.createElement('div');
+            div.className = `chat-msg ${type}`;
+            if (isHtml) div.innerHTML = text; else div.innerText = text;
+            logPanel.appendChild(div);
+            logPanel.scrollTop = logPanel.scrollHeight;
+            return div;
         }
 
         async function initCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } });
-                video.srcObject = stream;
+                video.srcObject = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } });
             } catch (err) {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
+                video.srcObject = await navigator.mediaDevices.getUserMedia({ video: true });
             }
         }
 
         function handleOrientation(event) {
+            if (isAnalyzing) return; // 锁定后不再更新度数
             let heading = event.webkitCompassHeading || (360 - event.alpha) || 0;
             if (smoothedHeading === 0) smoothedHeading = heading;
             else {
                 let diff = heading - smoothedHeading;
                 if (diff > 180) diff -= 360;
                 if (diff < -180) diff += 360;
-                smoothedHeading = (smoothedHeading + diff * EMA_ALPHA) % 360;
+                smoothedHeading = (smoothedHeading + diff * 0.1) % 360;
                 if (smoothedHeading < 0) smoothedHeading += 360;
             }
             currentHeading = smoothedHeading;
             headingVal.innerText = currentHeading.toFixed(1);
             document.getElementById('mountain-name').innerText = getMountain(currentHeading) + "山";
-            checkStability();
-        }
-
-        function checkStability() {
-            if (isAnalyzing || settingsModal.style.display === 'flex') return;
-            if (lastStableHeading === null || Math.abs(currentHeading - lastStableHeading) > STABLE_THRESHOLD) {
+            
+            if (lastStableHeading === null || Math.abs(currentHeading - lastStableHeading) > 3) {
                 lastStableHeading = currentHeading;
                 clearTimeout(stableTimer);
-                statusDot.className = 'status-indicator connected';
-                stableTimer = setTimeout(triggerAnalysis, STABLE_TIME);
+                document.getElementById('status-dot').className = 'status-indicator connected';
+                stableTimer = setTimeout(lockAndAnalyze, 1500);
             }
         }
+
+        async function lockAndAnalyze() {
+            const provider = document.getElementById('ai-provider').value;
+            const apiKey = localStorage.getItem(provider.toUpperCase()+'_KEY');
+            if (!apiKey) {
+                appendLog(`请先点击右上角 ⚙️ 配置 ${provider.toUpperCase()} 的 API Key`, 'system-log', true);
+                return;
+            }
+
+            // 1. 冻结状态：暂停摄像头，显示重启按钮
+            isAnalyzing = true;
+            video.pause(); 
+            reticle.classList.add('locked');
+            resetBtn.style.display = 'flex';
+            document.getElementById('status-dot').className = 'status-indicator analyzing';
+            
+            logPanel.innerHTML = ''; // 清空提示
+            appendLog(`📍 锁定度数：${currentHeading.toFixed(1)}°，正在截取画面...`);
+
+            const frameBase64 = captureFrame();
+            let mapBase64 = null;
+            const gaodeKey = localStorage.getItem('GAODE_KEY');
+
+            try {
+                // 2. 后端排盘与地图
+                const horosaRes = await fetch('/api/horosa', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ heading: currentHeading, year: new Date().getFullYear() })
+                });
+                const horosaData = await horosaRes.json();
+                appendLog(`🧭 理气排盘完毕：${horosaData.data.sitting_facing}，${horosaData.data.time_period}`);
+
+                if (userLat && userLng && gaodeKey) {
+                    appendLog("🗺️ 正在获取当地地理外局地图...");
+                    const mapRes = await fetch('/api/map', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lat: userLat, lng: userLng, gaode_key: gaodeKey })
+                    });
+                    const mapData = await mapRes.json();
+                    if (mapData.status === 'success') mapBase64 = mapData.image_base64;
+                }
+
+                // 3. 构建首次对话历史
+                chatHistory = [{ role: 'system', content: SYSTEM_INSTRUCTION }];
+                
+                const promptText = `理气排盘数据：\n${JSON.stringify(horosaData.data, null, 2)}\n请结合图1实景${mapBase64?'与图2地图':''}进行深度堪舆分析，给出断语并可向我提问。`;
+                
+                let userContent = [{ type: "text", text: promptText }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${frameBase64}` } }];
+                if (mapBase64) userContent.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${mapBase64}` } });
+                
+                chatHistory.push({ role: 'user', content: userContent }); // OpenAI 格式保存
+                
+                appendLog(`🔮 宗师合参中，请稍候...`, 'system-log');
+                
+                await callAIStream(provider, apiKey);
+                
+            } catch (err) {
+                appendLog(`<span style="color:red">分析中断: ${err.message}</span>`, 'system-log', true);
+            }
+        }
+
+        async function callAIStream(provider, apiKey) {
+            const aiDiv = appendLog(`<span class="gold">[${provider.toUpperCase()}]</span> `, 'assistant', true);
+            let fullReply = "";
+            
+            try {
+                if (provider === 'gemini') {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:streamGenerateContent?alt=sse&key=${apiKey}`;
+                    // 转换 history 为 Gemini 格式
+                    let geminiContents = chatHistory.filter(m => m.role !== 'system').map(m => {
+                        let parts = [];
+                        if (Array.isArray(m.content)) {
+                            m.content.forEach(c => {
+                                if (c.type === 'text') parts.push({ text: c.text });
+                                if (c.type === 'image_url') parts.push({ inlineData: { mimeType: "image/jpeg", data: c.image_url.url.split(',')[1] } });
+                            });
+                        } else {
+                            parts.push({ text: m.content });
+                        }
+                        return { role: m.role === 'assistant' ? 'model' : 'user', parts: parts };
+                    });
+                    
+                    const payload = {
+                        systemInstruction: { parts: [{ text: chatHistory[0].content }] },
+                        contents: geminiContents
+                    };
+                    
+                    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!res.ok) throw new Error("API 请求失败");
+                    const reader = res.body.getReader();
+                    const decoder = new TextDecoder("utf-8");
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const chunk = decoder.decode(value, {stream: true});
+                        const matches = chunk.match(/"text":\s*"([^"]+)"/g);
+                        if (matches) {
+                            matches.forEach(m => {
+                                let text = JSON.parse(`{${m}}`).text;
+                                fullReply += text;
+                                aiDiv.innerHTML += text.replace(/\n/g, '<br>');
+                                logPanel.scrollTop = logPanel.scrollHeight;
+                            });
+                        }
+                    }
+                } else {
+                    const url = provider === 'deepseek' ? 'https://api.deepseek.com/v1/chat/completions' : 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+                    const payload = { model: provider === 'deepseek' ? 'deepseek-chat' : 'glm-4v', stream: true, messages: chatHistory };
+                    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(payload) });
+                    if (!res.ok) throw new Error("API 请求失败");
+                    const reader = res.body.getReader();
+                    const decoder = new TextDecoder("utf-8");
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const chunk = decoder.decode(value, {stream: true});
+                        const lines = chunk.split('\n');
+                        for (const line of lines) {
+                            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                                try {
+                                    const data = JSON.parse(line.slice(6));
+                                    if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
+                                        fullReply += data.choices[0].delta.content;
+                                        aiDiv.innerHTML += data.choices[0].delta.content.replace(/\n/g, '<br>');
+                                        logPanel.scrollTop = logPanel.scrollHeight;
+                                    }
+                                } catch (e) {}
+                            }
+                        }
+                    }
+                }
+                // 保存 AI 回复并开启交互框
+                chatHistory.push({ role: 'assistant', content: fullReply });
+                chatInputArea.style.display = 'flex';
+                setTimeout(() => chatInput.focus(), 100);
+            } catch (err) {
+                aiDiv.innerHTML += `<br><span style="color:red">错误: ${err.message}</span>`;
+            }
+        }
+
+        // 交互对话逻辑
+        sendChatBtn.onclick = async () => {
+            const text = chatInput.value.trim();
+            if (!text) return;
+            chatInput.value = '';
+            chatInputArea.style.display = 'none'; // 隐藏输入框，等待生成
+            
+            appendLog(text, 'user');
+            chatHistory.push({ role: 'user', content: text });
+            
+            const provider = document.getElementById('ai-provider').value;
+            const apiKey = localStorage.getItem(provider.toUpperCase()+'_KEY');
+            await callAIStream(provider, apiKey);
+        };
+        
+        chatInput.onkeypress = (e) => { if (e.key === 'Enter') sendChatBtn.click(); };
+
+        // 重新勘测逻辑
+        resetBtn.onclick = () => {
+            isAnalyzing = false;
+            video.play();
+            reticle.classList.remove('locked');
+            resetBtn.style.display = 'none';
+            chatInputArea.style.display = 'none';
+            logPanel.innerHTML = '<div class="chat-msg system-log">等待罗盘稳定... 当您停顿 1.5 秒时将自动锁定画面进行深度分析。</div>';
+            lastStableHeading = null;
+        };
 
         function captureFrame() {
             canvas.width = 720; 
@@ -293,161 +461,23 @@
             return canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
         }
 
-        async function readOpenAIStream(response) {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const chunk = decoder.decode(value, {stream: true});
-                const lines = chunk.split('\n');
-                for (const line of lines) {
-                    if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-                            if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
-                                typewriterText.innerHTML += data.choices[0].delta.content.replace(/\n/g, '<br>');
-                                logPanel.scrollTop = logPanel.scrollHeight;
-                            }
-                        } catch (e) {}
-                    }
-                }
-            }
-        }
-
-        async function readGeminiStream(response) {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const chunk = decoder.decode(value, {stream: true});
-                try {
-                    const matches = chunk.match(/"text":\s*"([^"]+)"/g);
-                    if (matches) {
-                        matches.forEach(m => {
-                            let text = JSON.parse(`{${m}}`).text;
-                            typewriterText.innerHTML += text.replace(/\n/g, '<br>');
-                            logPanel.scrollTop = logPanel.scrollHeight;
-                        });
-                    }
-                } catch(e){}
-            }
-        }
-
-        async function triggerAnalysis() {
-            const provider = providerSelect.value;
-            const apiKey = getApiKey(provider);
-            const gaodeKey = localStorage.getItem('GAODE_KEY');
-            
-            if (!apiKey) {
-                typewriterText.innerHTML = `<span style="color:red">请先点击右上角 ⚙️ 配置 API Key</span>`;
-                return;
-            }
-
-            isAnalyzing = true;
-            statusDot.className = 'status-indicator analyzing';
-            typewriterText.innerHTML = "获取排盘数据中...<br>";
-            
-            const frameBase64 = captureFrame();
-            let mapBase64 = null;
-
-            try {
-                // 1. 获取后端理气排盘
-                const horosaRes = await fetch('/api/horosa', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ heading: currentHeading, year: new Date().getFullYear() })
-                });
-                const horosaData = await horosaRes.json();
-                
-                // 2. 如果有经纬度和高德 Key，请求代理获取地图图片
-                if (userLat && userLng && gaodeKey) {
-                    typewriterText.innerHTML += "提取周边大峦头地形...<br>";
-                    const mapRes = await fetch('/api/map', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ lat: userLat, lng: userLng, gaode_key: gaodeKey })
-                    });
-                    const mapData = await mapRes.json();
-                    if (mapData.status === 'success') {
-                        mapBase64 = mapData.image_base64;
-                    }
-                }
-
-                typewriterText.innerHTML += "内外局峦理合参开始...<br>";
-                typewriterText.innerHTML += `<span class="gold">[${provider.toUpperCase()}]</span><br>`;
-
-                const promptText = `理气排盘数据：\n${JSON.stringify(horosaData.data, null, 2)}\n\n请结合图片（图1为内部小峦头${mapBase64 ? '，图2为外部地形大峦头' : ''}）与理气数据，给出具体的吉凶研判与布局建议。`;
-
-                // 构建图片阵列
-                let imageParts = [];
-                // Gemini 格式
-                let geminiParts = [{ text: promptText }, { inlineData: { mimeType: "image/jpeg", data: frameBase64 } }];
-                // OpenAI 格式
-                let openaiContent = [{ type: "text", text: promptText }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${frameBase64}` } }];
-
-                if (mapBase64) {
-                    geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: mapBase64 } });
-                    openaiContent.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${mapBase64}` } });
-                }
-
-                if (provider === 'gemini') {
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:streamGenerateContent?alt=sse&key=${apiKey}`;
-                    const payload = {
-                        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-                        contents: [{ parts: geminiParts }]
-                    };
-                    const aiRes = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                    if (!aiRes.ok) throw new Error("Gemini API 请求失败");
-                    await readGeminiStream(aiRes);
-                } else {
-                    const url = provider === 'deepseek' ? 'https://api.deepseek.com/v1/chat/completions' : 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
-                    const modelName = provider === 'deepseek' ? 'deepseek-chat' : 'glm-4v';
-                    const payload = {
-                        model: modelName,
-                        stream: true,
-                        messages: [
-                            { role: "system", content: SYSTEM_INSTRUCTION },
-                            { role: "user", content: openaiContent }
-                        ]
-                    };
-                    const aiRes = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!aiRes.ok) throw new Error(`${provider} API 请求失败`);
-                    await readOpenAIStream(aiRes);
-                }
-            } catch (err) {
-                typewriterText.innerHTML += `<br><span style="color:red">错误: ${err.message}</span>`;
-            }
-            
-            statusDot.className = 'status-indicator connected';
-            setTimeout(() => { isAnalyzing = false; lastStableHeading = null; }, 5000);
-        }
-
-        startBtn.addEventListener('click', async () => {
-            // 请求 GPS 权限
+        document.getElementById('start-btn').addEventListener('click', async () => {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     pos => { userLat = pos.coords.latitude; userLng = pos.coords.longitude; },
-                    err => { console.warn("GPS 定位被拒绝或失败", err); }
+                    err => console.warn("GPS 定位被拒绝")
                 );
             }
-
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 try {
-                    const permissionState = await DeviceOrientationEvent.requestPermission();
-                    if (permissionState === 'granted') window.addEventListener('deviceorientation', handleOrientation);
-                    else alert("罗盘权限被拒绝");
-                } catch (error) { console.error(error); }
+                    if (await DeviceOrientationEvent.requestPermission() === 'granted') 
+                        window.addEventListener('deviceorientation', handleOrientation);
+                } catch (e) {}
             } else {
                 window.addEventListener('deviceorientationabsolute', handleOrientation);
             }
             await initCamera();
-            authOverlay.style.display = 'none';
+            document.getElementById('auth-overlay').style.display = 'none';
         });
     </script>
 </body>
