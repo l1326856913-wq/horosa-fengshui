@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Horosa AR</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --glass-bg: rgba(10, 10, 12, 0.65);
+            --gold: #D4AF37;
+            --text-main: #EAEAEA;
+            --safe-top: env(safe-area-inset-top, 20px);
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+        }
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-main);
+        }
+
+        /* 视频背景 */
+        #camera-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        /* AR HUD 叠加层 */
+        #hud-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* 顶部信息面板 (毛玻璃) */
+        .top-panel {
+            margin-top: var(--safe-top);
+            margin-left: 16px;
+            margin-right: 16px;
+            padding: 16px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .heading-display {
+            font-size: 2.5rem;
+            font-weight: 200;
+            color: var(--gold);
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .mountains-display {
+            font-size: 1.2rem;
+            text-align: right;
+        }
+
+        /* 中间准星与罗盘 */
+        .center-reticle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 1px solid rgba(212, 175, 55, 0.5);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .center-reticle::before, .center-reticle::after {
+            content: '';
+            position: absolute;
+            background: rgba(212, 175, 55, 0.8);
+        }
+
+        .center-reticle::before { width: 10px; height: 1px; }
+        .center-reticle::after { width: 1px; height: 10px; }
+
+        /* 底部打字机面板 */
+        .bottom-panel {
+            margin-bottom: var(--safe-bottom);
+            margin-left: 16px;
+            margin-right: 16px;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            min-height: 120px;
+            max-height: 30vh;
+            overflow-y: auto;
+            pointer-events: auto; /* 允许滚动 */
+        }
+
+        .typewriter {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-main);
+        }
+
+        .typewriter span.gold {
+            color: var(--gold);
+        }
+
+        /* 授权按钮遮罩 */
+        #auth-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-gold {
+            background: transparent;
+            color: var(--gold);
+            border: 1px solid var(--gold);
+            padding: 12px 32px;
+            font-size: 1.2rem;
+            border-radius: 24px;
+            margin-top: 20px;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        
+        /* 隐藏的canvas用于截帧 */
+        #capture-canvas {
+            display: none;
+        }
+        
+        /* 状态指示器 */
+        .status-indicator {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff3b30; /* default disconnected/waiting */
+            box-shadow: 0 0 8px #ff3b30;
+        }
+        .status-indicator.analyzing {
+            background: #ffcc00;
+            box-shadow: 0 0 8px #ffcc00;
+        }
+        .status-indicator.connected {
+            background: #34c759;
+            box-shadow: 0 0 8px #34c759;
+        }
+        
+        .provider-select {
+            background: transparent;
+            color: var(--gold);
+            border: 1px solid rgba(212, 175, 55, 0.5);
+            border-radius: 8px;
+            padding: 4px;
+            margin-top: 8px;
+            font-size: 0.9rem;
+            outline: none;
+            pointer-events: auto;
+        }
+        .provider-select option {
+            background: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 授权层 -->
+    <div id="auth-overlay">
+        <h1 style="color: var(--gold); font-weight: 300;">Horosa AR</h1>
+        <p style="color: #888;">需要相机与罗盘权限</p>
+        <button class="btn-gold" id="start-btn">开启堪舆</button>
+    </div>
+
+    <!-- 视频流 -->
+    <video id="camera-view" autoplay playsinline muted></video>
+    <canvas id="capture-canvas"></canvas>
+
+    <!-- AR HUD -->
+    <div id="hud-container">
+        <div class="top-panel">
+            <div class="status-indicator" id="status-dot"></div>
+            <div>
+                <div class="heading-display"><span id="heading-val">0</span>°</div>
+                <select class="provider-select" id="ai-provider">
+                    <option value="gemini">Gemini 3.1 Pro</option>
+                    <option value="deepseek">DeepSeek</option>
+                    <option value="glm">Zhipu GLM-5</option>
+                </select>
+            </div>
+            <div class="mountains-display">
+                <div id="mountain-name" style="color: var(--gold); font-size: 1.5rem; margin-bottom: 4px;">--山</div>
+                <div id="gua-name" style="font-size: 1rem; color: #888;">正在获取方位...</div>
+            </div>
+        </div>
+
+        <div class="center-reticle" id="reticle"></div>
+
+        <div class="bottom-panel" id="log-panel">
+            <div class="typewriter" id="typewriter-text">等待罗盘稳定...</div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('camera-view');
+        const canvas = document.getElementById('capture-canvas');
+        const headingVal = document.getElementById('heading-val');
+        const typewriterText = document.getElementById('typewriter-text');
+        const startBtn = document.getElementById('start-btn');
+        const authOverlay = document.getElementById('auth-overlay');
+        const statusDot = document.getElementById('status-dot');
+        const providerSelect = document.getElementById('ai-provider');
+        const logPanel = document.getElementById('log-panel');
+        
+        let currentHeading = 0;
+        let smoothedHeading = 0;
+        const EMA_ALPHA = 0.1; // 阶段2：指数平滑滤波器消除室内磁场抖动
+        
+        let isAnalyzing = false;
+        let stableTimer = null;
+        let lastStableHeading = null;
+        const STABLE_THRESHOLD = 3; // 容忍度 3 度
+        const STABLE_TIME = 1500; // 阶段2：稳定 1.5 秒后触发抽帧
+
+        // 二十四山简易映射(用于前端快速展示，后端会返回精确的)
+        const mountains = ["子", "癸", "丑", "艮", "寅", "甲", "卯", "乙", "辰", "巽", "巳", "丙", "午", "丁", "未", "坤", "申", "庚", "酉", "辛", "戌", "乾", "亥", "壬"];
+        function getMountain(heading) {
+            let index = Math.floor(((heading + 7.5) % 360) / 15);
+            return mountains[index];
+        }
+
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { exact: "environment" } }
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                console.warn("无法获取后置摄像头，尝试默认摄像头");
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            }
+        }
+
+        function handleOrientation(event) {
+            let heading = 0;
+            if (event.webkitCompassHeading) {
+                // iOS
+                heading = event.webkitCompassHeading;
+            } else if (event.alpha !== null) {
+                // Android 简单近似
+                heading = 360 - event.alpha; 
+            }
+            
+            // EMA 滤波消除抖动
+            if (smoothedHeading === 0) {
+                smoothedHeading = heading;
+            } else {
+                let diff = heading - smoothedHeading;
+                if (diff > 180) diff -= 360;
+                if (diff < -180) diff += 360;
+                smoothedHeading = (smoothedHeading + diff * EMA_ALPHA) % 360;
+                if (smoothedHeading < 0) smoothedHeading += 360;
+            }
+            
+            currentHeading = smoothedHeading;
+            
+            // 更新 UI
+            headingVal.innerText = currentHeading.toFixed(1);
+            document.getElementById('mountain-name').innerText = getMountain(currentHeading) + "山";
+            
+            // 阶段2：智能抽帧机制，罗盘稳定检测
+            checkStability();
+        }
+
+        function checkStability() {
+            if (isAnalyzing) return;
+            
+            if (lastStableHeading === null || Math.abs(currentHeading - lastStableHeading) > STABLE_THRESHOLD) {
+                lastStableHeading = currentHeading;
+                clearTimeout(stableTimer);
+                statusDot.className = 'status-indicator connected';
+                stableTimer = setTimeout(() => {
+                    triggerAnalysis();
+                }, STABLE_TIME);
+            }
+        }
+
+        function captureFrame() {
+            canvas.width = 720; // 截取 720p
+            canvas.height = (video.videoHeight / video.videoWidth) * 720 || 1280;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/webp', 0.8);
+        }
+
+        async function triggerAnalysis() {
+            isAnalyzing = true;
+            statusDot.className = 'status-indicator analyzing';
+            typewriterText.innerHTML = "捕捉画面，开始理气排盘与峦头合参...<br>";
+            
+            const frameBase64 = captureFrame();
+            const provider = providerSelect.value;
+            
+            try {
+                // 发送图片和度数给后端 /api/analyze SSE 接口
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image_base64: frameBase64,
+                        heading: currentHeading,
+                        year: new Date().getFullYear(),
+                        ai_provider: provider
+                    })
+                });
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                typewriterText.innerHTML += `<span class="gold">[${provider.toUpperCase()}]</span><br>`;
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.slice(6).trim();
+                            if (dataStr === '[DONE]') {
+                                break;
+                            }
+                            try {
+                                const data = JSON.parse(dataStr);
+                                if (data.text) {
+                                    // 实时打字机效果显示
+                                    typewriterText.innerHTML += data.text.replace(/\n/g, '<br>');
+                                    logPanel.scrollTop = logPanel.scrollHeight;
+                                } else if (data.error) {
+                                    typewriterText.innerHTML += `<br><span style="color:red">错误: ${data.error}</span>`;
+                                }
+                            } catch (e) {
+                                // 忽略解析错误，等待下个 chunk
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                typewriterText.innerHTML += `<br><span style="color:red">网络错误: ${err.message}</span>`;
+            }
+            
+            statusDot.className = 'status-indicator connected';
+            // 分析完成后，等待 5 秒再允许下一次触发
+            setTimeout(() => {
+                isAnalyzing = false;
+                lastStableHeading = null;
+            }, 5000);
+        }
+
+        startBtn.addEventListener('click', async () => {
+            // 阶段2：处理 iOS 13+ 的 DeviceOrientationEvent.requestPermission() 手势授权
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const permissionState = await DeviceOrientationEvent.requestPermission();
+                    if (permissionState === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation);
+                    } else {
+                        alert("罗盘权限被拒绝");
+                    }
+                } catch (error) {
+                    console.error(error);
+                }
+            } else {
+                window.addEventListener('deviceorientationabsolute', handleOrientation);
+            }
+            
+            await initCamera();
+            authOverlay.style.display = 'none';
+        });
+    </script>
+</body>
+</html>
