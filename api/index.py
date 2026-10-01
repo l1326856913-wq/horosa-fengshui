@@ -1,14 +1,7 @@
-import asyncio
-import json
-import os
-import subprocess
-from typing import AsyncGenerator
-from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse
+import math
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-
-# Ensure you have installed: fastapi uvicorn openai google-generativeai
+from pydantic import BaseModel
 
 app = FastAPI(title="Horosa FengShui AR Backend")
 
@@ -20,157 +13,92 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class AnalyzeRequest(BaseModel):
-    image_base64: str = Field(..., description="Base64 encoded image string")
-    heading: float = Field(..., description="Compass heading (0-360)")
-    year: int = Field(default=2024, description="Current year for flying stars calculation")
-    ai_provider: str = Field(default="gemini", description="AI Provider: gemini, deepseek, glm")
+class HorosaRequest(BaseModel):
+    heading: float
+    year: int = 2024
 
-# 阶段3：精细化 System Instruction 设计
-SYSTEM_INSTRUCTION = """
-你是一位通晓中国传统堪舆学（三元玄空飞星派、八宅明镜派、形势峦头学）的当代建筑环境学大师。
-系统会将摄像头的实时图像与通过专业引擎【horosa-skill】精密计算得到的【理气排盘数据】同时输入给你。
-你的分析必须严格遵循“峦头为体，理气为用，体用结合”的原则：
-1. 严禁篡改或臆测理气数据：九运旺衰、坐向飞星、生旺退煞必须 100% 依据传入的 horosa 数据，不得自行推算飞星。
-2. 视觉深度解析（峦头）：
-   - 仔细审视图像中的空间结构：是否有横梁压顶、门冲、尖角冲射、缺角。
-   - 观察向首（窗户/大门）的采光、视线与室外环境（水体、道路、遮挡）。
-3. 峦理合参：
-   - 将视觉看到的实物与飞星宫位对应（例如：画面正前方的窗户正逢向星九紫，为当旺财星到向，见开扬明堂主吉）。
-4. 语言风格：
-   - 专业典雅，融合经典术语（如“向首飞星”、“零正得宜”、“避凶趋吉”），但解释必须通俗易懂，符合现代人居健康与室内设计美学，避免封建迷信色彩。
-"""
+# 二十四山 (从壬开始，中心点为 345度)
+M24 = ["壬", "子", "癸", "丑", "艮", "寅", "甲", "卯", "乙", "辰", "巽", "巳", 
+       "丙", "午", "丁", "未", "坤", "申", "庚", "酉", "辛", "戌", "乾", "亥"]
 
-def get_horosa_data(heading: float, year: int) -> dict:
+# 八卦与八宅映射
+BAGUA = ["坎", "艮", "震", "巽", "离", "坤", "兑", "乾"]
+EAST_GROUP = ["坎", "震", "巽", "离"]
+
+def calculate_fengshui(heading: float, year: int):
     """
-    阶段1：集成 horosa-skill，通过 Subprocess 调用计算理气排盘数据
+    真正的风水理气核心算法引擎：
+    1. 计算二十四山与坐向
+    2. 计算正向（下卦）与兼向（替卦）
+    3. 八宅明镜派判定
     """
-    try:
-        # 调用假想的 horosa-skill CLI
-        result = subprocess.run(
-            ["horosa-skill", "calc", "--heading", str(heading), "--year", str(year), "--format", "json"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return json.loads(result.stdout)
-    except FileNotFoundError:
-        # 如果未安装CLI，返回Mock数据确保流程畅通
-        return {
-            "twenty_four_mountains": "子山午向" if 157.5 <= heading < 202.5 else "未知坐向",
-            "direction_type": "正向（下卦）",
-            "flying_stars": "九紫当令，向星九紫到向",
-            "eight_mansions": "延年吉位"
+    # 修正度数在 0-360 之间
+    heading = heading % 360
+    
+    # 1. 计算二十四山向首 (Facing)
+    # 壬山的范围是 337.5 - 352.5。通过 +22.5 将壬山的起点移到 0
+    facing_idx = int(((heading + 22.5) % 360) / 15)
+    facing_mountain = M24[facing_idx]
+    
+    # 2. 计算坐山 (Sitting) - 与向首差 180 度 (即 12 个山)
+    sitting_idx = (facing_idx + 12) % 24
+    sitting_mountain = M24[sitting_idx]
+    
+    # 3. 判定正向与兼向 (下卦 vs 替卦)
+    # 每一个山的中心度数
+    mountain_center = (facing_idx * 15 - 15) % 360
+    diff = abs(heading - mountain_center)
+    if diff > 180: 
+        diff = 360 - diff
+        
+    # 中心左右 4.5 度内为下卦（正向），之外为替卦（兼向）
+    direction_type = "正向（下卦）" if diff <= 4.5 else f"兼向（替卦，偏离中心 {round(diff, 1)}°）"
+    
+    # 4. 八宅派计算
+    # 坐山决定了宅卦。每三个山对应一个卦 (坎0,1,2 -> 艮3,4,5 ...)
+    trigram_idx = int(sitting_idx / 3)
+    sitting_gua = BAGUA[trigram_idx]
+    mansion_type = f"{sitting_gua}宅 ({'东四宅' if sitting_gua in EAST_GROUP else '西四宅'})"
+    
+    # 5. 三元九运计算
+    period = 9 if 2024 <= year <= 2043 else (8 if 2004 <= year <= 2023 else 1)
+
+    return {
+        "status": "success",
+        "data": {
+            "compass_degree": round(heading, 2),
+            "sitting_facing": f"{sitting_mountain}山{facing_mountain}向",
+            "precision": direction_type,
+            "eight_mansions": mansion_type,
+            "time_period": f"下元{period}运"
         }
-    except Exception as e:
-        return {"error": str(e)}
-
-async def stream_gemini(image_b64: str, horosa_data: dict) -> AsyncGenerator[str, None]:
-    import google.generativeai as genai
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        yield "data: {\"error\": \"GEMINI_API_KEY 未设置\"}\n\n"
-        return
-
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-pro', system_instruction=SYSTEM_INSTRUCTION)
-    
-    prompt = f"理气排盘数据：\n{json.dumps(horosa_data, ensure_ascii=False, indent=2)}\n\n请结合图片中的环境峦头与上述理气数据，给出具体的吉凶研判与实用的现代布局/化煞建议。"
-    
-    image_part = {
-        "mime_type": "image/jpeg",
-        "data": image_b64
     }
-    
+
+@app.post("/api/horosa")
+async def get_horosa_endpoint(request: HorosaRequest):
+    return calculate_fengshui(request.heading, request.year)
+
+class MapProxyRequest(BaseModel):
+    lng: float
+    lat: float
+    gaode_key: str
+
+@app.post("/api/map")
+async def fetch_map_proxy(request: MapProxyRequest):
+    """
+    代理获取高德静态地图，转为 Base64 传给前端，
+    以此绕过浏览器的 Canvas CORS 跨域污染限制。
+    """
+    import httpx
+    import base64
+    url = f"https://restapi.amap.com/v3/staticmap?location={request.lng},{request.lat}&zoom=15&size=500*500&key={request.gaode_key}"
     try:
-        response = await asyncio.to_thread(
-            model.generate_content,
-            [prompt, image_part],
-            stream=True
-        )
-        for chunk in response:
-            if chunk.text:
-                data = json.dumps({"text": chunk.text})
-                yield f"data: {data}\n\n"
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url)
+            if resp.status_code == 200:
+                img_b64 = base64.b64encode(resp.content).decode('utf-8')
+                return {"status": "success", "image_base64": img_b64}
+            else:
+                return {"status": "error", "message": "地图获取失败"}
     except Exception as e:
-        yield f"data: {{\"error\": \"Gemini Error: {str(e)}\"}}\n\n"
-
-async def stream_openai_compatible(provider: str, api_key_env: str, base_url: str, model_name: str, image_b64: str, horosa_data: dict) -> AsyncGenerator[str, None]:
-    from openai import AsyncOpenAI
-    api_key = os.environ.get(api_key_env)
-    if not api_key:
-        yield f"data: {{\"error\": \"{api_key_env} 未设置\"}}\n\n"
-        return
-
-    client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-    prompt = f"理气排盘数据：\n{json.dumps(horosa_data, ensure_ascii=False, indent=2)}\n\n请结合图片中的环境峦头与上述理气数据，给出具体的吉凶研判与实用的现代布局/化煞建议。"
-    
-    messages = [
-        {"role": "system", "content": SYSTEM_INSTRUCTION},
-        {"role": "user", "content": [
-            {"type": "text", "text": prompt},
-            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}}
-        ]}
-    ]
-
-    try:
-        response = await client.chat.completions.create(
-            model=model_name,
-            messages=messages,
-            stream=True
-        )
-        async for chunk in response:
-            if chunk.choices and chunk.choices[0].delta.content:
-                data = json.dumps({"text": chunk.choices[0].delta.content})
-                yield f"data: {data}\n\n"
-    except Exception as e:
-        yield f"data: {{\"error\": \"{provider.capitalize()} Error: {str(e)}\"}}\n\n"
-
-async def stream_deepseek(image_b64: str, horosa_data: dict) -> AsyncGenerator[str, None]:
-    # DeepSeek 兼容接口调用
-    async for chunk in stream_openai_compatible(
-        provider="deepseek",
-        api_key_env="DEEPSEEK_API_KEY",
-        base_url="https://api.deepseek.com/v1",
-        model_name="deepseek-chat", # 请替换为深空支持视觉的最新模型名
-        image_b64=image_b64,
-        horosa_data=horosa_data
-    ):
-        yield chunk
-
-async def stream_glm(image_b64: str, horosa_data: dict) -> AsyncGenerator[str, None]:
-    # 智谱 GLM 兼容接口调用 (GLM-4V 支持视觉)
-    async for chunk in stream_openai_compatible(
-        provider="glm",
-        api_key_env="ZHIPU_API_KEY",
-        base_url="https://open.bigmodel.cn/api/paas/v4",
-        model_name="glm-4v",
-        image_b64=image_b64,
-        horosa_data=horosa_data
-    ):
-        yield chunk
-
-@app.post("/api/analyze")
-async def analyze_endpoint(request: AnalyzeRequest):
-    horosa_data = get_horosa_data(request.heading, request.year)
-    
-    img_b64 = request.image_base64
-    if img_b64.startswith("data:image"):
-        img_b64 = img_b64.split(",")[1]
-        
-    async def event_generator():
-        if request.ai_provider == "gemini":
-            async for chunk in stream_gemini(img_b64, horosa_data):
-                yield chunk
-        elif request.ai_provider == "deepseek":
-            async for chunk in stream_deepseek(img_b64, horosa_data):
-                yield chunk
-        elif request.ai_provider == "glm":
-            async for chunk in stream_glm(img_b64, horosa_data):
-                yield chunk
-        else:
-            yield f"data: {{\"error\": \"不支持的 AI 模型: {request.ai_provider}\"}}\n\n"
-        
-        yield "data: [DONE]\n\n"
-        
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+        return {"status": "error", "message": str(e)}
