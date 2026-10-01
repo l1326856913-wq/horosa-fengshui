@@ -314,8 +314,18 @@
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ heading: currentHeading, year: new Date().getFullYear() })
                 });
+                
+                if (!horosaRes.ok) throw new Error("后端排盘接口请求失败");
                 const horosaData = await horosaRes.json();
-                appendLog(`🧭 理气排盘完毕：${horosaData.data.sitting_facing}，${horosaData.data.time_period}`);
+                
+                if (horosaData.error) throw new Error("排盘引擎报错: " + horosaData.error);
+                
+                // 兼容旧版接口与新版接口
+                const hData = horosaData.data ? horosaData.data : horosaData;
+                const sf = hData.sitting_facing || hData.twenty_four_mountains || "未知坐向";
+                const tp = hData.time_period || hData.flying_stars || "未知运势";
+                
+                appendLog(`🧭 理气排盘完毕：${sf}，${tp}`);
 
                 if (userLat && userLng && gaodeKey) {
                     appendLog("🗺️ 正在获取当地地理外局地图...");
@@ -330,7 +340,7 @@
                 // 3. 构建首次对话历史
                 chatHistory = [{ role: 'system', content: SYSTEM_INSTRUCTION }];
                 
-                const promptText = `理气排盘数据：\n${JSON.stringify(horosaData.data, null, 2)}\n请结合图1实景${mapBase64?'与图2地图':''}进行深度堪舆分析，给出断语并可向我提问。`;
+                const promptText = `理气排盘数据：\n${JSON.stringify(hData, null, 2)}\n请结合图1实景${mapBase64?'与图2地图':''}进行深度堪舆分析，给出断语并可向我提问。`;
                 
                 let userContent = [{ type: "text", text: promptText }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${frameBase64}` } }];
                 if (mapBase64) userContent.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${mapBase64}` } });
