@@ -75,8 +75,15 @@ def calculate_fengshui(heading: float, year: int):
     }
 
 @app.post("/api/horosa")
+@app.post("/horosa")
+@app.post("/")
 async def get_horosa_endpoint(request: HorosaRequest):
     return calculate_fengshui(request.heading, request.year)
+
+@app.get("/api/health")
+@app.get("/health")
+def health_check():
+    return {"status": "backend is alive!"}
 
 class MapProxyRequest(BaseModel):
     lng: float
