@@ -228,6 +228,12 @@
             <div class="input-group"><label>Zhipu GLM API Key</label><input type="password" id="key-glm" placeholder="..."></div>
             <div class="input-group"><label>高德地图 Web API Key</label><input type="password" id="key-gaode" placeholder="可选，用于大峦头分析"></div>
             <div class="input-group"><label>流年（紫白年盘，可选，默认当前年）</label><input type="number" id="input-flow-year" placeholder="例如：2026"></div>
+            <div class="input-group"><label>解读风格</label>
+                <select id="input-answer-style" style="width:100%;background:#222;border:1px solid #444;color:#fff;padding:8px;border-radius:8px;">
+                    <option value="plain">白话模式（推荐，零基础也能听懂）</option>
+                    <option value="pro">专业模式（完整术语体系）</option>
+                </select>
+            </div>
             <div class="input-group"><label>GLM 模型名（可选，默认 glm-5.3-flash；若报"模型不存在"可改 glm-5v-turbo / glm-4v-plus-0111）</label><input type="text" id="key-glm-model" placeholder="glm-5.3-flash"></div>
             <div class="input-group"><label>住宅建造年或起运年 (公历，玄空排盘必需)</label><input type="number" id="input-house-year" placeholder="例如：2015"></div>
             <div class="input-group"><label>出生日期 (公历，八宅必需；1-2月出生者必须准确到日，以判定立春年界)</label><input type="date" id="input-birth-date"></div>
@@ -324,6 +330,7 @@ I. 请求补拍：若关键区域未入镜、画面模糊、背光过暗导致�
 J. 记忆调用：输入可能带有【历史勘测记忆】，请像复诊的老医师一样先回顾既往结论，再结合本轮排盘与图像；记忆与本轮实测冲突时，以本轮为准并指出差异。
 K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引用系统给定的坐向、运、局型、命卦等关键结论，与界面展示的排盘一致），再进入图像辅助解读；辅助解读中涉及理气的表述必须与排盘一致。
 L. 语言：正式回答全程使用简体中文（专业术语首次出现可附英文原名）；内部思考流用什么语言不影响此要求。
+M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔。每条结论按"哪个位置→现在的情况→对你的影响→建议怎么做"展开；必须出现的专业词（如五黄、伏吟、当运）首次出现时用括号一句白话解释（例：五黄——传统上最需避忌的凶星，此年此位不宜动土）；多用"你""靠窗那面墙""进门右手边"等具体指代，少用"宅主""此宅"。仅在输入标注【解读风格】专业模式时，才可使用完整术语体系。
 K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引用系统给定的坐向、运、局型、命卦等关键结论，与界面展示的排盘一致），再进入图像辅助解读；辅助解读中涉及理气的表述必须与排盘一致。
 你的分析流程必须极其专业，并分步骤与用户互动：
 1. 观察并抛出断语：结合提供的绝对理气数据（坐向、星盘），指出图中的主要煞气或吉位。
@@ -350,6 +357,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 localStorage.setItem(k.toUpperCase()+'_KEY', document.getElementById(`key-${k}`).value.trim());
             });
             localStorage.setItem('GLM_MODEL', document.getElementById('key-glm-model').value.trim());
+            localStorage.setItem('ANSWER_STYLE', document.getElementById('input-answer-style').value);
             localStorage.setItem('FLOW_YEAR', document.getElementById('input-flow-year').value);
             localStorage.setItem('BIRTH_DATE', document.getElementById('input-birth-date').value);
             localStorage.setItem('GENDER', document.getElementById('input-gender').value);
@@ -361,6 +369,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             document.getElementById(`key-${k}`).value = localStorage.getItem(k.toUpperCase()+'_KEY') || '';
         });
         document.getElementById('key-glm-model').value = localStorage.getItem('GLM_MODEL') || '';
+        document.getElementById('input-answer-style').value = localStorage.getItem('ANSWER_STYLE') || 'plain';
         document.getElementById('input-flow-year').value = localStorage.getItem('FLOW_YEAR') || '';
         document.getElementById('input-birth-date').value = localStorage.getItem('BIRTH_DATE') || '';
         document.getElementById('input-gender').value = localStorage.getItem('GENDER') || '';
@@ -846,9 +855,13 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 // 3. 构建首次对话历史
                 chatHistory = [{ role: 'system', content: SYSTEM_INSTRUCTION }];
                 
+                const answerStyle = localStorage.getItem('ANSWER_STYLE') === 'pro' ? 'pro' : 'plain';
+                const styleLine = answerStyle === 'plain'
+                    ? '【解读风格】白话模式：读者是零基础业主，请严格按铁律M用生活语言表达，术语必须带白话解释。'
+                    : '【解读风格】专业模式：读者具备堪舆基础，可使用完整术语体系。';
                 const memBlock = memoryText() ? `\n${memoryText()}\n（若记忆与本轮实测冲突，以本轮为准并指出差异。）` : '';
                 const flowNote = reqBody.flowYear ? `\n【流年】${reqBody.flowYear}年紫白年盘已由引擎排出（排盘面板各宫"年星"行），分析当年引动时以该盘为准，禁止自行重算。` : '';
-                const promptText = `【勘测方式】${surveyText()}\n理气排盘数据与结构化证据：\n${evidencePrompt}\n\n详细排盘信息：\n${mingyuPrompt}${flowNote}${memBlock}\n请结合上述八方位序列${mapBase64?'及外局地图':''}进行整体空间堪舆分析，给出断语并可向我提问。请全程使用简体中文回答。`;
+                const promptText = `【勘测方式】${surveyText()}\n${styleLine}\n理气排盘数据与结构化证据：\n${evidencePrompt}\n\n详细排盘信息：\n${mingyuPrompt}${flowNote}${memBlock}\n请结合上述八方位序列${mapBase64?'及外局地图':''}进行整体空间堪舆分析，给出断语并可向我提问。请全程使用简体中文回答。`;
 
                 // 八方位定向序列：每帧标注罗盘方位（与九宫直接映射），外局图放最后
                 const frameDesc = frames.map((f, i) => `图${i + 1}：【${f.dir}】(${f.heading.toFixed(0)}°)`).join('；');
@@ -1073,7 +1086,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             chatInputArea.style.display = 'none';
             chatHistory.push({
                 role: 'user',
-                content: [{ type: 'text', text: `【第${analysisRound}轮补拍 · 八方位定向】${surveyText()}。本轮序列：${frameDesc}${missedNote}。请结合此前各轮观察、记忆与排盘数据重新整合分析；若仍不足可再次提出【重拍请求】。请全程使用简体中文回答。` },
+                content: [{ type: 'text', text: `【第${analysisRound}轮补拍 · 八方位定向】${surveyText()}。本轮序列：${frameDesc}${missedNote}。请结合此前各轮观察、记忆与排盘数据重新整合分析；若仍不足可再次提出【重拍请求】。请全程使用简体中文回答，并保持此前选择的解读风格（白话/专业）。` },
                     ...frames.map(f => ({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${f.b64}` } }))]
             });
             appendLog('🔮 补拍整合分析中…', 'system-log');
