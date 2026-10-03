@@ -174,7 +174,7 @@
             <div class="input-group"><label>Zhipu GLM API Key</label><input type="password" id="key-glm" placeholder="..."></div>
             <div class="input-group"><label>高德地图 Web API Key</label><input type="password" id="key-gaode" placeholder="可选，用于大峦头分析"></div>
             <div class="input-group"><label>住宅建造年或起运年 (公历，玄空排盘必需)</label><input type="number" id="input-house-year" placeholder="例如：2015"></div>
-            <div class="input-group"><label>出生年份 (公历，八宅必需)</label><input type="number" id="input-birth-year" placeholder="例如：1990"></div>
+            <div class="input-group"><label>出生日期 (公历，八宅必需；1-2月出生者必须准确到日，以判定立春年界)</label><input type="date" id="input-birth-date"></div>
             <div class="input-group"><label>性别 (八宅必需)</label>
                 <select id="input-gender" style="width: 100%; background: #222; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px;">
                     <option value="">未选择</option>
@@ -252,7 +252,7 @@ D. 化解建议须现代可行、安全、可逆（家具布局、色彩、屏�
             ['gemini', 'deepseek', 'glm', 'gaode'].forEach(k => {
                 localStorage.setItem(k.toUpperCase()+'_KEY', document.getElementById(`key-${k}`).value.trim());
             });
-            localStorage.setItem('BIRTH_YEAR', document.getElementById('input-birth-year').value);
+            localStorage.setItem('BIRTH_DATE', document.getElementById('input-birth-date').value);
             localStorage.setItem('GENDER', document.getElementById('input-gender').value);
             localStorage.setItem('HOUSE_YEAR', document.getElementById('input-house-year').value);
             settingsModal.style.display = 'none';
@@ -261,7 +261,7 @@ D. 化解建议须现代可行、安全、可逆（家具布局、色彩、屏�
         ['gemini', 'deepseek', 'glm', 'gaode'].forEach(k => {
             document.getElementById(`key-${k}`).value = localStorage.getItem(k.toUpperCase()+'_KEY') || '';
         });
-        document.getElementById('input-birth-year').value = localStorage.getItem('BIRTH_YEAR') || '';
+        document.getElementById('input-birth-date').value = localStorage.getItem('BIRTH_DATE') || '';
         document.getElementById('input-gender').value = localStorage.getItem('GENDER') || '';
         document.getElementById('input-house-year').value = localStorage.getItem('HOUSE_YEAR') || '';
 
@@ -462,6 +462,13 @@ D. 化解建议须现代可行、安全、可逆（家具布局、色彩、屏�
                 if (houseYear) reqBody.year = parseInt(houseYear);
                 if (userLat != null && userLng != null) { reqBody.lat = userLat; reqBody.lng = userLng; }
                 if (bYear) reqBody.birthYear = parseInt(bYear);
+                const bDate = localStorage.getItem('BIRTH_DATE');
+                if (bDate) {
+                    const [by, bm, bd] = bDate.split('-').map(Number);
+                    if (by) reqBody.birthYear = by;
+                    if (bm) reqBody.birthMonth = bm;
+                    if (bd) reqBody.birthDay = bd;
+                }
                 if (gender) reqBody.gender = gender;
 
                 const horosaRes = await fetch('/api/horosa', {

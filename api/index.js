@@ -115,7 +115,7 @@ export default async function handler(req, res) {
   if (pathname === '/api/horosa' && req.method === 'POST') {
     try {
       const { generateResidentialFengshui } = await import('mingyu-core/residential-fengshui');
-      const { heading, northReference, lat, lng, year, birthYear, gender, uncertainty } = req.body || {};
+      const { heading, northReference, lat, lng, year, birthYear, birthMonth, birthDay, gender, uncertainty } = req.body || {};
 
       if (typeof heading !== 'number' || !Number.isFinite(heading) || heading < 0 || heading > 360) {
         return res.status(400).json({ status: 'error', message: '缺少有效的朝向角度 heading（0-360）。' });
@@ -147,6 +147,8 @@ export default async function handler(req, res) {
       }
 
       if (birthYear) fengshuiInput.birthYear = parseInt(birthYear, 10);
+      if (birthMonth) fengshuiInput.birthMonth = parseInt(birthMonth, 10);
+      if (birthDay) fengshuiInput.birthDay = parseInt(birthDay, 10);
       if (gender) fengshuiInput.gender = gender;
 
       const result = generateResidentialFengshui(fengshuiInput);
