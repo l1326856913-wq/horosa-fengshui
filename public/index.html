@@ -648,6 +648,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
 
         // 幻觉防护网：机器可验证的事实（山向/命卦）不允许 AI 说错
         const _M = '[子癸丑艮寅甲卯乙辰巽巳丙午丁未坤申庚酉辛戌乾亥壬]';
+        function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
         function verifyAIReply(reply) {
             const h = window.__lastHorosa;
             if (!reply || !h) return;
@@ -998,6 +999,33 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 let sseBuf = '';
                 let reasoningDiv = null;
                 let reasoningSeen = false;
+                // 思考区折叠 + 渲染节流：避免长思考刷屏与 O(n²) innerHTML 重渲染卡顿
+                let reasoningFull = '', reasoningBuf = '', contentBuf = '', flushTimer = null, contentStarted = false;
+                const collapseReasoning = () => {
+                    if (!reasoningDiv) return;
+                    reasoningDiv.innerHTML = '<b>【思考完成 · 已折叠】</b> <span style="text-decoration:underline;cursor:pointer">点击展开思考过程</span>';
+                    reasoningDiv.style.cursor = 'pointer';
+                    reasoningDiv.onclick = () => {
+                        const open = reasoningDiv.dataset.open !== '1';
+                        reasoningDiv.dataset.open = open ? '1' : '0';
+                        reasoningDiv.innerHTML = open
+                            ? '<b>【思考过程】</b><br>' + escHtml(reasoningFull).replace(/\n/g, '<br>')
+                            : '<b>【思考完成 · 已折叠】</b> <span style="text-decoration:underline;cursor:pointer">点击展开思考过程</span>';
+                        logPanel.scrollTop = logPanel.scrollHeight;
+                    };
+                };
+                const flushBuffers = () => {
+                    if (reasoningBuf && !contentStarted && reasoningDiv) {
+                        reasoningDiv.innerHTML += escHtml(reasoningBuf).replace(/\n/g, '<br>');
+                        reasoningBuf = '';
+                    }
+                    if (contentBuf) {
+                        aiDiv.innerHTML += escHtml(contentBuf).replace(/\n/g, '<br>');
+                        contentBuf = '';
+                    }
+                    logPanel.scrollTop = logPanel.scrollHeight;
+                };
+                const scheduleFlush = () => { if (!flushTimer) flushTimer = setTimeout(() => { flushTimer = null; flushBuffers(); }, 300); };
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
@@ -1041,14 +1069,16 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                                         reasoningDiv.style.color = '#9a9a9a';
                                         reasoningDiv.style.fontSize = '0.85rem';
                                     }
-                                    reasoningDiv.innerHTML += delta.reasoning_content.replace(/\n/g, '<br>');
                                     reasoningSeen = true;
-                                    logPanel.scrollTop = logPanel.scrollHeight;
+                                    reasoningFull += delta.reasoning_content;
+                                    reasoningBuf += delta.reasoning_content;
+                                    scheduleFlush();
                                 }
                                 if (delta.content) {
+                                    if (!contentStarted) { contentStarted = true; collapseReasoning(); }
                                     fullReply += delta.content;
-                                    aiDiv.innerHTML += delta.content.replace(/\n/g, '<br>');
-                                    logPanel.scrollTop = logPanel.scrollHeight;
+                                    contentBuf += delta.content;
+                                    scheduleFlush();
                                 }
                             } catch (e) {}
                         }
@@ -1056,6 +1086,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 }
                 // 保存 AI 回复并开启交互框
                 clearTimeout(watchdog);
+                flushBuffers(); // 冲刷节流缓冲，确保正文完整落屏
                 if (streamTimedOut && !fullReply) {
                     throw new Error('AI 超过 45 秒无任何输出，已自动中止。请点🔄重试；若反复出现，请更换模型或服务商。');
                 }
