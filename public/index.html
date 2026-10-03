@@ -896,7 +896,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             }
         }
 
-        async function callAIStream(provider, apiKey) {
+        async function callAIStream(provider, apiKey, opts = {}) {
             const aiDiv = appendLog(`<span class="gold">【AI辅助解读 · ${provider.toUpperCase()}】</span> `, 'assistant', true);
             let fullReply = "";
 
@@ -955,7 +955,12 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                     }
                     payload = {
                         model: apiModel,
-                        body: { model: apiModel, stream: true, messages: filteredHistory }
+                        // 显式提高输出上限：GLM-5.x 深度思考可能吃满默认额度导致正文为空；
+                        // 重试路径可关闭深度思考（thinking: disabled）
+                        body: Object.assign(
+                            { model: apiModel, stream: true, messages: filteredHistory, max_tokens: 8192 },
+                            opts.disableThinking ? { thinking: { type: 'disabled' } } : {}
+                        )
                     };
                 }
 
@@ -992,6 +997,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 let gemBuf = '';
                 let sseBuf = '';
                 let reasoningDiv = null;
+                let reasoningSeen = false;
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
@@ -1036,6 +1042,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                                         reasoningDiv.style.fontSize = '0.85rem';
                                     }
                                     reasoningDiv.innerHTML += delta.reasoning_content.replace(/\n/g, '<br>');
+                                    reasoningSeen = true;
                                     logPanel.scrollTop = logPanel.scrollHeight;
                                 }
                                 if (delta.content) {
@@ -1053,7 +1060,15 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                     throw new Error('AI 超过 45 秒无任何输出，已自动中止。请点🔄重试；若反复出现，请更换模型或服务商。');
                 }
                 if (!fullReply) {
-                    appendLog(`⚠️ ${provider.toUpperCase()} 未返回任何内容（可能模型无权限、不支持图片输入或思考被限流）。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。`, 'system-log', true);
+                    // GLM 特有：深度思考占满输出额度，只产出思考没有正文 → 自动关闭思考重试一次
+                    if (provider === 'glm' && reasoningSeen && !opts.disableThinking) {
+                        appendLog('⚠️ GLM 只输出了思考过程、未给出正文（深度思考占满输出额度）。已自动关闭深度思考重试一次…', 'system-log', true);
+                        return callAIStream(provider, apiKey, { disableThinking: true });
+                    }
+                    const why = reasoningSeen
+                        ? '模型只输出了思考过程、未给出正文（已尝试关闭深度思考仍失败）。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。'
+                        : '未返回任何内容（可能模型无权限、不支持图片输入或思考被限流）。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。';
+                    appendLog(`⚠️ ${provider.toUpperCase()} ${why}`, 'system-log', true);
                 }
                 chatHistory.push({ role: 'assistant', content: fullReply });
                 verifyAIReply(fullReply);
