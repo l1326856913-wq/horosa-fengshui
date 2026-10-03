@@ -959,8 +959,8 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                         // 显式提高输出上限：GLM-5.x 深度思考可能吃满默认额度导致正文为空；
                         // 重试路径可关闭深度思考（thinking: disabled）
                         body: Object.assign(
-                            { model: apiModel, stream: true, messages: filteredHistory, max_tokens: 8192 },
-                            opts.disableThinking ? { thinking: { type: 'disabled' } } : {}
+                            { model: apiModel, stream: true, messages: filteredHistory, max_tokens: 32768 },
+                            opts.thinkingLevel ? { thinking: { type: opts.thinkingLevel } } : {}
                         )
                     };
                 }
@@ -1092,12 +1092,12 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 }
                 if (!fullReply) {
                     // GLM 特有：深度思考占满输出额度，只产出思考没有正文 → 自动关闭思考重试一次
-                    if (provider === 'glm' && reasoningSeen && !opts.disableThinking) {
-                        appendLog('⚠️ GLM 只输出了思考过程、未给出正文（深度思考占满输出额度）。已自动关闭深度思考重试一次…', 'system-log', true);
-                        return callAIStream(provider, apiKey, { disableThinking: true });
+                    if (provider === 'glm' && reasoningSeen && opts.thinkingLevel !== 'low') {
+                        appendLog('⚠️ GLM 只输出了思考过程、未给出正文（深度思考占满输出额度）。已自动降低思考强度为 low 重试一次…', 'system-log', true);
+                        return callAIStream(provider, apiKey, { thinkingLevel: 'low' });
                     }
                     const why = reasoningSeen
-                        ? '模型只输出了思考过程、未给出正文（已尝试关闭深度思考仍失败）。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。'
+                        ? '降低思考强度后仍未给出正文。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。'
                         : '未返回任何内容（可能模型无权限、不支持图片输入或思考被限流）。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。';
                     appendLog(`⚠️ ${provider.toUpperCase()} ${why}`, 'system-log', true);
                 }
