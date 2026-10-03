@@ -264,17 +264,22 @@
 
     <button id="manual-capture-btn" class="btn-gold" style="display: none; position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);">拍摄实景并堪舆</button>
     <button id="retake-btn" class="btn-gold" style="display: none; position: absolute; bottom: 220px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);">📷 按大师要求补拍</button>
+    <button id="skip-dir-btn" style="display: none; position: absolute; bottom: 285px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(0,0,0,0.8); border: 1px solid #888; border-radius: 18px; color: #ccc; padding: 8px 18px; cursor: pointer; pointer-events: auto;">⏭ 跳过此方位</button>
 
     <div id="guide-modal">
         <div class="settings-content">
-            <h2>站位指引 · 选择勘测方式</h2>
-            <p style="color:#888;font-size:0.82rem;margin:4px 0 8px">先分室内外：室外定坐向看外局形煞，室内按九宫看门房灶布局。</p>
-            <div style="color:var(--gold);font-size:0.9rem;margin:6px 0">▍室外勘测</div>
-            <button class="guide-option" data-mode="orientation"><b>🏛 门外定向【室外】</b><br>站在大门/建筑立面正前方 2-3 米，镜头正对大门。用于定坐向、观察外立面与外局形煞。</button>
-            <div style="color:var(--gold);font-size:0.9rem;margin:6px 0">▍室内勘测</div>
-            <button class="guide-option" data-mode="interior"><b>🧭 立极环拍【室内】</b><br>站在住宅平面中心点（立极点）附近，环视四顾缓慢平移。用于内局九宫布局、门房灶与动线分析。</button>
-            <button class="guide-option" data-mode="zone"><b>🔍 区域复查【室内】</b><br>靠近待查区域 1-1.5 米定点平移拍摄。用于复查门窗、通道、摆设等细节。</button>
-            <p style="color:#888;font-size:0.82rem;margin-bottom:0">专业提示：测坐向应在室外正对大门；内局分析以住宅平面几何中心为立极点。可随时点 🔄 换位重新勘测。</p>
+            <h2>勘测指引</h2>
+            <div id="guide-step1">
+                <div style="color:var(--gold);font-size:0.9rem;margin:6px 0">第一步 · 选择勘测环境（引擎将据此匹配解读口径）</div>
+                <button class="guide-option" data-env="outdoor"><b>🏛 室外勘测</b><br>在建筑外进行。引擎匹配口径：坐向判定 + 外局形煞（路冲/反弓/尖角/水口）。</button>
+                <button class="guide-option" data-env="indoor"><b>🏠 室内勘测</b><br>在建筑内进行。引擎匹配口径：内局九宫布局 + 门房灶与动线。</button>
+            </div>
+            <div id="guide-step2" style="display:none">
+                <div style="color:var(--gold);font-size:0.9rem;margin:6px 0">第二步 · 选择站位方式</div>
+                <div id="guide-modes"></div>
+                <button class="btn-small" id="guide-back-btn" style="width:100%;margin-top:8px">← 返回重选环境</button>
+            </div>
+            <p style="color:#888;font-size:0.82rem;margin-bottom:0">采集方式：锁定基准后，请依次把手机转向 8 个罗盘方位（正北/东北/正东/东南/正南/西南/正西/西北），偏差 ±12° 内稳定 0.8 秒自动拍摄，也可跳过。</p>
         </div>
     </div>
 
@@ -300,7 +305,7 @@ C. 区分层级：理气（固定计算结果）与峦头（图像观察）必�
 D. 化解建议须现代可行、安全、可逆（家具布局、色彩、屏风、绿植等），禁止推荐开口葫芦、符咒等无法验证真伪的商品化处置，更不得制造恐吓性断言逼迫消费。
 E. 断语必须定位溯源：每个形煞/吉位断语都须注明观察依据在画面中的位置（如"画面左上""门口正对处"），无法定位到画面具体位置的观察一律降级为向用户提问，不得作为断语输出。
 F. 反谄媚：用户质疑你的结论时，基于排盘数据与图像证据回应；证据支持你的结论则温和坚持并说明依据，证据不足则明确承认分歧与不确定性，禁止无依据地迎合用户改口。
-G. 空间序列整合：多帧属于同一空间的连续视角，必须综合各帧推断整体布局（门窗相对位置、通道动线、明堂关系、功能区分布），禁止把不同帧误判为不同房间；若判断某帧确实拍到了不同区域，须先说明依据。空间关系结论优先于单帧局部观察；各帧交界处的连续性（同一物体在相邻帧中重现）可作为方位对齐依据。
+G. 八方位-九宫映射：序列的每一帧对应一个罗盘方位（正北=坎宫、正南=离宫、正东=震宫、正西=兑宫、东北=艮宫、东南=巽宫、西南=坤宫、西北=乾宫），解读时必须按"方位→九宫→飞星"映射到排盘对应宫位；缺失方位须注明该宫以排盘为准、图像证据缺失。同一物体在相邻方位帧中的重现可用于空间校准，禁止把不同帧误判为不同房间。
 H. 室内外口径严格区分：输入会标注勘测环境（室外勘测/室内勘测）。室外：以坐向核验与外局峦头为主（路冲、反弓、尖角、水口、靠山朝案），不解读室内九宫摆设；室内：坐向一律以引擎排盘为准、禁止凭画面自行改判，分析以九宫对应实际功能区、门房灶与动线为主。区域复查按其所在环境就近取用口径。
 I. 请求补拍：若关键区域未入镜、画面模糊、背光过暗导致无法支撑判断，可在回复末尾单独一行输出【重拍请求：原因+拍摄建议】；仅在确有必要时使用，用户将据此补拍。
 J. 记忆调用：输入可能带有【历史勘测记忆】，请像复诊的老医师一样先回顾既往结论，再结合本轮排盘与图像；记忆与本轮实测冲突时，以本轮为准并指出差异。
@@ -350,15 +355,20 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
         let isCapturing = false; // 多帧空间序列采集阶段：视频与罗盘保持活跃，但禁止自动重锁
         let captureSeq = 0;      // 采集序号：重置时自增以中断进行中的采集
 
-        // ========= 勘测方式（站位指引）与勘测记忆 =========
+        // ========= 勘测方式（室内外+站位）与勘测记忆 =========
         const SURVEY_MODES = {
-            orientation: { env: '室外', text: '站在大门/建筑立面正前方2-3米处，镜头正对大门（用于定坐向与观察外立面、外局形煞）' },
-            interior: { env: '室内', text: '站在住宅平面中心点（立极点）附近环视四顾（用于内局九宫布局、门房灶与动线分析）' },
-            zone: { env: '室内', text: '靠近待查区域1-1.5米定点平移拍摄（用于复查门窗/通道/摆设细节）' },
+            orientation: { env: '室外', name: '门外定向', text: '站在大门/建筑立面正前方2-3米处，镜头正对大门（用于定坐向与观察外立面、外局形煞）' },
+            interior: { env: '室内', name: '立极环拍', text: '站在住宅平面中心点（立极点），依次对准八方位环拍（用于内局九宫布局、门房灶与动线分析）' },
+            zone: { env: '室内', name: '区域复查', text: '靠近待查区域1-1.5米，依次对准八方位定点拍摄（用于复查门窗/通道/摆设细节）' },
         };
+        const MODES_BY_ENV = { outdoor: ['orientation'], indoor: ['interior', 'zone'] };
+        let surveyEnv = localStorage.getItem('SURVEY_ENV') || 'outdoor';
         let surveyMode = localStorage.getItem('SURVEY_MODE') || 'orientation';
         let analysisRound = 0;
-        function surveyText() { const s = SURVEY_MODES[surveyMode] || SURVEY_MODES.orientation; return `【${s.env}勘测】` + s.text; }
+        function surveyText() {
+            const s = SURVEY_MODES[surveyMode] || SURVEY_MODES.orientation;
+            return `【${s.env}勘测 · ${s.name}】` + s.text;
+        }
         function loadMemory() { try { return JSON.parse(localStorage.getItem('HOROSA_MEMORY') || '[]'); } catch (e) { return []; } }
         function saveMemoryRecord(rec) {
             const m = loadMemory();
@@ -371,17 +381,35 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             if (!m.length) return '';
             return '【历史勘测记忆】' + m.map((r, i) => `第${m.length - i}次(${r.ts})：${r.mode}；${r.orientationText || '坐向未知'}；${r.periodLabel || ''}${r.mingGua ? '，命卦' + r.mingGua : ''}；要点：${r.summary}`).join(' ｜ ');
         }
-        document.querySelectorAll('.guide-option').forEach(btn => {
+        document.querySelectorAll('.guide-option[data-env]').forEach(btn => {
             btn.onclick = () => {
-                surveyMode = btn.dataset.mode;
-                localStorage.setItem('SURVEY_MODE', surveyMode);
-                document.getElementById('guide-modal').style.display = 'none';
-                appendLog(`📋 勘测方式已定：${surveyText()}。等待罗盘稳定后自动开始采集。`, 'system-log');
+                surveyEnv = btn.dataset.env;
+                localStorage.setItem('SURVEY_ENV', surveyEnv);
+                // 第二步：只展示该环境下的站位方式（引擎口径匹配）
+                document.getElementById('guide-modes').innerHTML = MODES_BY_ENV[surveyEnv].map(id => {
+                    const s = SURVEY_MODES[id];
+                    return `<button class="guide-option" data-mode="${id}"><b>${s.env === '室外' ? '🏛' : '🏠'} ${s.name}【${s.env}】</b><br>${s.text}</button>`;
+                }).join('');
+                document.getElementById('guide-step1').style.display = 'none';
+                document.getElementById('guide-step2').style.display = 'block';
+                document.querySelectorAll('#guide-modes .guide-option').forEach(mb => {
+                    mb.onclick = () => {
+                        surveyMode = mb.dataset.mode;
+                        localStorage.setItem('SURVEY_MODE', surveyMode);
+                        document.getElementById('guide-modal').style.display = 'none';
+                        appendLog(`📋 勘测方式已定：${surveyText()}。等待罗盘稳定后开始八方位定向采集。`, 'system-log');
+                    };
+                });
             };
         });
+        document.getElementById('guide-back-btn').onclick = () => {
+            document.getElementById('guide-step2').style.display = 'none';
+            document.getElementById('guide-step1').style.display = 'block';
+        };
         document.getElementById('memory-btn').onclick = () => { renderMemory(); document.getElementById('memory-modal').style.display = 'flex'; };
         document.getElementById('close-memory-btn').onclick = () => document.getElementById('memory-modal').style.display = 'none';
         document.getElementById('clear-memory-btn').onclick = () => { localStorage.removeItem('HOROSA_MEMORY'); renderMemory(); };
+        document.getElementById('skip-dir-btn').onclick = () => { window.__skipDir = true; };
         function renderMemory() {
             const m = loadMemory();
             document.getElementById('memory-list').innerHTML = m.length
@@ -619,18 +647,42 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 await new Promise(r => setTimeout(r, 300)); // 等待画面稳定
             }
             const mySeq = ++captureSeq;
-            const N_FRAMES = 6, CAPTURE_INTERVAL = 600;
-            appendLog('📹 空间序列采集中：请缓慢向左再向右平移手机，保持画面连续…');
-            const frames = [];
-            for (let i = 0; i < N_FRAMES; i++) {
-                if (mySeq !== captureSeq) return null; // 采集中途被重置
-                frames.push({ b64: captureFrame(), heading: currentHeading });
-                appendLog(`📹 已采集 ${frames.length}/${N_FRAMES} 帧（${currentHeading.toFixed(0)}°）`);
-                if (i < N_FRAMES - 1) await new Promise(r => setTimeout(r, CAPTURE_INTERVAL));
+            const TOL = 12, CONFIRM_MS = 800;
+            const octants = [
+                { deg: 0, name: '正北' }, { deg: 45, name: '东北' }, { deg: 90, name: '正东' }, { deg: 135, name: '东南' },
+                { deg: 180, name: '正南' }, { deg: 225, name: '西南' }, { deg: 270, name: '正西' }, { deg: 315, name: '西北' },
+            ];
+            // 从当前朝向起顺时针排序，减少无效转动
+            octants.sort((a, b) => (((a.deg - currentHeading) % 360 + 360) % 360) - (((b.deg - currentHeading) % 360 + 360) % 360));
+            appendLog(`🧭 八方位定向采集（共8个方位，±${TOL}°内稳定0.8秒自动拍摄）。从【${octants[0].name}】开始…`);
+            const guideDiv = appendLog('🧭 正在等待转向…', 'system-log');
+            const skipBtn = document.getElementById('skip-dir-btn');
+            skipBtn.style.display = 'block';
+            const frames = [], missed = [];
+            for (let i = 0; i < octants.length; i++) {
+                const t = octants[i];
+                appendLog(`🧭 (${i + 1}/8) 请对准【${t.name}】`);
+                let stableSince = null, skipped = false;
+                window.__skipDir = false;
+                while (true) {
+                    if (mySeq !== captureSeq) { skipBtn.style.display = 'none'; return null; } // 被重置
+                    if (window.__skipDir) { window.__skipDir = false; skipped = true; break; }
+                    const dev = Math.abs(normRel(currentHeading - t.deg));
+                    guideDiv.innerHTML = `🧭 目标【${t.name}】｜当前 ${currentHeading.toFixed(0)}°｜偏差 ${dev.toFixed(0)}° ${dev <= TOL ? '✓ 保持稳定…' : '（请继续转动）'}`;
+                    if (dev <= TOL) {
+                        if (!stableSince) stableSince = Date.now();
+                        if (Date.now() - stableSince >= CONFIRM_MS) break;
+                    } else stableSince = null;
+                    await new Promise(r => setTimeout(r, 100));
+                }
+                if (skipped) { missed.push(t.name); appendLog(`⏭ 已跳过【${t.name}】`, 'system-log'); continue; }
+                frames.push({ b64: captureFrame(), heading: currentHeading, dir: t.name });
+                appendLog(`✅ 【${t.name}】采集成功（第 ${frames.length} 帧，${currentHeading.toFixed(0)}°）`);
             }
+            skipBtn.style.display = 'none';
             isCapturing = false;
             video.pause();
-            return frames;
+            return { frames, missed };
         }
 
         async function lockAndAnalyze() {
@@ -647,11 +699,10 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             analysisRound = 1;
             retakeBtn.style.display = 'none';
             appendLog(`📍 基准锁定 ${currentHeading.toFixed(1)}°。${surveyText()}`);
-            const frames = await captureSequence();
-            if (!frames) return; // 采集中途被重置
-            const baseHeading = frames[0].heading;
-            const rels = frames.map(f => normRel(f.heading - baseHeading));
-            appendLog(`✅ 采集完成：基准 ${baseHeading.toFixed(1)}°，覆盖约 ${Math.round(Math.max(...rels) - Math.min(...rels))}° 视角范围`);
+            const cap = await captureSequence();
+            if (!cap) return; // 采集中途被重置
+            const frames = cap.frames, missed = cap.missed;
+            appendLog(`✅ 八方位采集完成：${frames.length}/8 帧${missed.length ? '，未采集：' + missed.join('、') : ''}`);
 
             let mapBase64 = null;
             const gaodeKey = localStorage.getItem('GAODE_KEY');
@@ -730,12 +781,10 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 const memBlock = memoryText() ? `\n${memoryText()}\n（若记忆与本轮实测冲突，以本轮为准并指出差异。）` : '';
                 const promptText = `【勘测方式】${surveyText()}\n理气排盘数据与结构化证据：\n${evidencePrompt}\n\n详细排盘信息：\n${mingyuPrompt}${memBlock}\n请结合上述多帧空间序列${mapBase64?'及外局地图':''}进行整体空间堪舆分析，给出断语并可向我提问。`;
 
-                // 多帧空间序列：每帧标注相对基准的偏角（正对基准/左偏/右偏），外局图放最后
-                const frameDesc = frames.map((f, i) => {
-                    const rel = normRel(f.heading - baseHeading);
-                    return rel === 0 ? `图${i + 1}：正对基准` : `图${i + 1}：${rel < 0 ? '左偏' : '右偏'}${Math.abs(rel).toFixed(0)}°`;
-                }).join('；');
-                let userContent = [{ type: "text", text: `【多帧空间序列】同一空间不同角度的连续画面（${frameDesc}）${mapBase64 ? '；最后一张为周边外局俯瞰地图' : ''}。\n${promptText}` }];
+                // 八方位定向序列：每帧标注罗盘方位（与九宫直接映射），外局图放最后
+                const frameDesc = frames.map((f, i) => `图${i + 1}：【${f.dir}】(${f.heading.toFixed(0)}°)`).join('；');
+                const missedNote = missed.length ? `；另有 ${missed.length} 个方位（${missed.join('、')}）未能对准未采集，分析时须注明该方位缺失` : '';
+                let userContent = [{ type: "text", text: `【八方位定向序列】同一空间内按罗盘方位逐一定向拍摄的画面（${frameDesc}）${missedNote}${mapBase64 ? '；最后一张为周边外局俯瞰地图' : ''}。\n${promptText}` }];
                 frames.forEach(f => userContent.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${f.b64}` } }));
                 if (mapBase64) userContent.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${mapBase64}` } });
                 
@@ -943,17 +992,15 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             retakeBtn.style.display = 'none';
             analysisRound++;
             appendLog(`📷 第 ${analysisRound} 轮采集开始。${surveyText()}`, 'system-log');
-            const frames = await captureSequence();
-            if (!frames) return;
-            const baseHeading = frames[0].heading;
-            const frameDesc = frames.map((f, i) => {
-                const rel = normRel(f.heading - baseHeading);
-                return rel === 0 ? `图${i + 1}：正对基准` : `图${i + 1}：${rel < 0 ? '左偏' : '右偏'}${Math.abs(rel).toFixed(0)}°`;
-            }).join('；');
+            const cap = await captureSequence();
+            if (!cap) return;
+            const frames = cap.frames, missed = cap.missed;
+            const frameDesc = frames.map((f, i) => `图${i + 1}：【${f.dir}】(${f.heading.toFixed(0)}°)`).join('；');
+            const missedNote = missed.length ? `；未采集方位：${missed.join('、')}` : '';
             chatInputArea.style.display = 'none';
             chatHistory.push({
                 role: 'user',
-                content: [{ type: 'text', text: `【第${analysisRound}轮补拍】${surveyText()}。本轮序列：${frameDesc}。请结合此前各轮观察、记忆与排盘数据重新整合分析；若仍不足可再次提出【重拍请求】。` },
+                content: [{ type: 'text', text: `【第${analysisRound}轮补拍 · 八方位定向】${surveyText()}。本轮序列：${frameDesc}${missedNote}。请结合此前各轮观察、记忆与排盘数据重新整合分析；若仍不足可再次提出【重拍请求】。` },
                     ...frames.map(f => ({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${f.b64}` } }))]
             });
             appendLog('🔮 补拍整合分析中…', 'system-log');
