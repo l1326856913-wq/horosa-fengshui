@@ -184,6 +184,18 @@
         .luopan-castle { font-size: 0.75rem; color: #9a9a9a; margin-top: 4px; }
         .luopan-bazhai { font-size: 0.85rem; margin-top: 6px; }
         .luopan-note { font-size: 0.75rem; color: #9a9a9a; margin-top: 6px; }
+        .star-year { color: #4cd7ff; }
+
+        .advice-panel, .remind-panel {
+            border: 1px solid rgba(212,175,55,0.4); border-radius: 12px; padding: 10px 12px;
+            background: rgba(212,175,55,0.06); margin: 4px 0 10px;
+        }
+        .advice-panel > div, .remind-panel > div { font-size: 0.85rem; line-height: 1.55; }
+        .remind-item { border-top: 1px dashed rgba(212,175,55,0.25); padding: 5px 0; }
+        .remind-gong { color: var(--gold); margin-bottom: 2px; }
+        .remind-star { color: var(--text-main); }
+        .remind-star .star-on { font-weight: bold; }
+        .remind-bazhai { margin-top: 6px; color: var(--text-main); }
         
         #map-view { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1.5; }
     </style>
@@ -215,6 +227,7 @@
             <div class="input-group"><label>DeepSeek API Key</label><input type="password" id="key-deepseek" placeholder="sk-..."></div>
             <div class="input-group"><label>Zhipu GLM API Key</label><input type="password" id="key-glm" placeholder="..."></div>
             <div class="input-group"><label>高德地图 Web API Key</label><input type="password" id="key-gaode" placeholder="可选，用于大峦头分析"></div>
+            <div class="input-group"><label>流年（紫白年盘，可选，默认当前年）</label><input type="number" id="input-flow-year" placeholder="例如：2026"></div>
             <div class="input-group"><label>GLM 模型名（可选，默认 glm-5.3-flash；若报"模型不存在"可改 glm-5v-turbo / glm-4v-plus-0111）</label><input type="text" id="key-glm-model" placeholder="glm-5.3-flash"></div>
             <div class="input-group"><label>住宅建造年或起运年 (公历，玄空排盘必需)</label><input type="number" id="input-house-year" placeholder="例如：2015"></div>
             <div class="input-group"><label>出生日期 (公历，八宅必需；1-2月出生者必须准确到日，以判定立春年界)</label><input type="date" id="input-birth-date"></div>
@@ -335,6 +348,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 localStorage.setItem(k.toUpperCase()+'_KEY', document.getElementById(`key-${k}`).value.trim());
             });
             localStorage.setItem('GLM_MODEL', document.getElementById('key-glm-model').value.trim());
+            localStorage.setItem('FLOW_YEAR', document.getElementById('input-flow-year').value);
             localStorage.setItem('BIRTH_DATE', document.getElementById('input-birth-date').value);
             localStorage.setItem('GENDER', document.getElementById('input-gender').value);
             localStorage.setItem('HOUSE_YEAR', document.getElementById('input-house-year').value);
@@ -345,6 +359,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             document.getElementById(`key-${k}`).value = localStorage.getItem(k.toUpperCase()+'_KEY') || '';
         });
         document.getElementById('key-glm-model').value = localStorage.getItem('GLM_MODEL') || '';
+        document.getElementById('input-flow-year').value = localStorage.getItem('FLOW_YEAR') || '';
         document.getElementById('input-birth-date').value = localStorage.getItem('BIRTH_DATE') || '';
         document.getElementById('input-gender').value = localStorage.getItem('GENDER') || '';
         document.getElementById('input-house-year').value = localStorage.getItem('HOUSE_YEAR') || '';
@@ -534,9 +549,10 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
         // 九宫格按洛书布局：巽离坤 / 震中兑 / 艮坎乾；当运星金色、五黄红色
         function enginePanel(hData) {
             const x = hData.xuankong, b = hData.bazhai;
+            const yp = x && x.flowStars && x.flowStars.yearPlate ? x.flowStars.yearPlate : null;
             let html = '<div class="luopan-panel"><div class="luopan-title">【算法引擎排盘 · 权威依据】</div>';
             if (x) {
-                html += `<div class="luopan-meta">${x.period.label}｜${x.sitMountain}山${x.facingMountain}向｜${x.guaType}｜局型：${x.formation}</div>`;
+                html += `<div class="luopan-meta">${x.period.label}｜${x.sitMountain}山${x.facingMountain}向｜${x.guaType}｜局型：${x.formation}${yp ? `｜流年${yp.year}·${yp.starName}入中` : ''}</div>`;
                 if (x.palaces && x.palaces.length === 9) {
                     const byGong = {};
                     x.palaces.forEach(p => { byGong[p.gong] = p; });
@@ -548,7 +564,8 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                             const cls = n === 5 ? 'star-5' : (n === yun ? 'star-on' : '');
                             return `<span class="${cls}">${label}${n}</span>`;
                         };
-                        return `<div class="palace"><div class="pname">${p.name}·${p.direction}</div><div class="stars">${star(p.yunStar, '运')} ${star(p.shanStar, '山')} ${star(p.xiangStar, '向')}</div><div class="prel">${p.shanXiangRelation || ''}${p.yunStarState ? ' · ' + p.yunStarState : ''}</div></div>`;
+                        const yearStar = yp ? `年星${yp.plate[p.gong - 1]}` : '';
+                        return `<div class="palace"><div class="pname">${p.name}·${p.direction}</div><div class="stars">${star(p.yunStar, '运')} ${star(p.shanStar, '山')} ${star(p.xiangStar, '向')}</div><div class="prel">${yearStar ? yearStar + ' · ' : ''}${p.shanXiangRelation || ''}${p.yunStarState ? ' · ' + p.yunStarState : ''}</div></div>`;
                     }).join('') + '</div>';
                 }
                 if (x.combinations && x.combinations.length) html += `<div class="luopan-combo">组合：${x.combinations.map(c => c.name).join('、')}</div>`;
@@ -559,6 +576,53 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                     (b.luckyDirections ? `｜四吉位：${b.luckyDirections.map(d => `${d.direction || ''}(${d.label || ''})`).join(' ')}` : '') + '</div>';
             }
             html += '<div class="luopan-note">以上为确定性算法结果；下方 AI 内容仅为辅助解读，理气以本面板为准。</div></div>';
+            return html;
+        }
+
+        // 通行星性口径（确定性规则表，非AI生成）：由引擎盘面推导方位宜忌
+        const STAR_RULES = {
+            1: { name: '一白贪狼', tag: '吉', yi: '利人缘官贵，宜整洁明亮', buyi: '' },
+            2: { name: '二黑病符', tag: '病符', yi: '', buyi: '忌久坐久卧，保持整洁干燥' },
+            3: { name: '三碧蚩尤', tag: '是非', yi: '', buyi: '忌口舌争执与冲动决策' },
+            4: { name: '四绿文昌', tag: '吉', yi: '利学业文书，宜书房绿植', buyi: '' },
+            5: { name: '五黄廉贞', tag: '大煞', yi: '宜静不宜动', buyi: '大忌动土装修、红黄色饰品、长期坐卧' },
+            6: { name: '六白武曲', tag: '吉', yi: '利事业权威，宜金属饰品', buyi: '忌红色火性物品（火克金）' },
+            7: { name: '七赤破军', tag: '退气', yi: '', buyi: '防口舌盗失，宜静不宜动' },
+            8: { name: '八白左辅', tag: '吉', yi: '利财运，宜常活动使用', buyi: '' },
+            9: { name: '九紫右弼', tag: '吉', yi: '主喜庆，宜明亮常使用', buyi: '忌污秽杂物堆压' },
+        };
+
+        // 引擎应对建议（r.advice 为引擎确定性输出）
+        function advicePanel(hData) {
+            const a = hData.advice || [];
+            return `<div class="advice-panel"><div class="luopan-title">【引擎应对建议】</div>${a.map(x => `<div>· ${x}</div>`).join('') || '<div>暂无</div>'}<div class="luopan-note">来源：mingyu-core 引擎确定性输出，非AI生成。</div></div>`;
+        }
+
+        // 方位宜忌提醒：向星管财禄纳气、山星管健康人丁；由引擎盘面 + 通行星性口径推导
+        function remindersPanel(hData) {
+            const x = hData.xuankong, b = hData.bazhai;
+            let html = '<div class="remind-panel"><div class="luopan-title">【方位宜忌提醒】</div><div class="luopan-note">依据引擎盘面与通行星性口径推导（确定性规则，非AI生成）；向星管财禄纳气、山星管健康人丁。</div>';
+            if (x && x.palaces) {
+                const yun = x.period.yunStar;
+                html += x.palaces.map(p => {
+                    const mk = (star, label) => {
+                        const r = STAR_RULES[star];
+                        const hot = star === yun ? '<span class="star-on">（当运）</span>' : '';
+                        let seg = `${label}星${star}·${r.name}【${r.tag}】${hot}`;
+                        if (r.yi) seg += ` 宜：${r.yi}`;
+                        if (r.buyi) seg += ` 忌：${r.buyi}`;
+                        return `<div class="remind-star">${seg}</div>`;
+                    };
+                    return `<div class="remind-item"><div class="remind-gong">${p.name}（${p.direction}）</div>${mk(p.xiangStar, '向')}${mk(p.shanStar, '山')}</div>`;
+                }).join('');
+            }
+            if (b) {
+                const yi = (b.luckyDirections || []).map(d => `${d.direction}（${d.label}）`).join('、');
+                const bu = (b.unluckyDirections || []).map(d => `${d.direction}（${d.label}）`).join('、');
+                if (yi) html += `<div class="remind-bazhai">八宅吉位：大门/卧室/书房宜优先设于 ${yi}</div>`;
+                if (bu) html += `<div class="remind-bazhai">八宅凶位：大门/卧室/厨房不宜设于 ${bu}</div>`;
+            }
+            html += '</div>';
             return html;
         }
 
@@ -722,6 +786,8 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 if (houseYear) reqBody.year = parseInt(houseYear);
                 if (userLat != null && userLng != null) { reqBody.lat = userLat; reqBody.lng = userLng; }
                 if (bYear) reqBody.birthYear = parseInt(bYear);
+                const flowYear = localStorage.getItem('FLOW_YEAR');
+                reqBody.flowYear = flowYear ? parseInt(flowYear) : new Date().getFullYear();
                 const bDate = localStorage.getItem('BIRTH_DATE');
                 if (bDate) {
                     const [by, bm, bd] = bDate.split('-').map(Number);
@@ -779,7 +845,8 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 chatHistory = [{ role: 'system', content: SYSTEM_INSTRUCTION }];
                 
                 const memBlock = memoryText() ? `\n${memoryText()}\n（若记忆与本轮实测冲突，以本轮为准并指出差异。）` : '';
-                const promptText = `【勘测方式】${surveyText()}\n理气排盘数据与结构化证据：\n${evidencePrompt}\n\n详细排盘信息：\n${mingyuPrompt}${memBlock}\n请结合上述多帧空间序列${mapBase64?'及外局地图':''}进行整体空间堪舆分析，给出断语并可向我提问。`;
+                const flowNote = reqBody.flowYear ? `\n【流年】${reqBody.flowYear}年紫白年盘已由引擎排出（排盘面板各宫"年星"行），分析当年引动时以该盘为准，禁止自行重算。` : '';
+                const promptText = `【勘测方式】${surveyText()}\n理气排盘数据与结构化证据：\n${evidencePrompt}\n\n详细排盘信息：\n${mingyuPrompt}${flowNote}${memBlock}\n请结合上述八方位序列${mapBase64?'及外局地图':''}进行整体空间堪舆分析，给出断语并可向我提问。`;
 
                 // 八方位定向序列：每帧标注罗盘方位（与九宫直接映射），外局图放最后
                 const frameDesc = frames.map((f, i) => `图${i + 1}：【${f.dir}】(${f.heading.toFixed(0)}°)`).join('；');
@@ -793,6 +860,10 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 appendLog(`🔮 宗师合参中，请稍候...`, 'system-log');
                 
                 const reply = await callAIStream(provider, apiKey);
+                // 分析完成：引擎应对建议 + 方位宜忌提醒（均为确定性输出，非AI生成）
+                window.__lastHorosaData = hData;
+                appendLog(advicePanel(hData), 'system-log', true);
+                appendLog(remindersPanel(hData), 'system-log', true);
                 saveMemoryRecord({
                     ts: new Date().toLocaleString('zh-CN'),
                     mode: surveyText(),
@@ -1005,6 +1076,10 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             });
             appendLog('🔮 补拍整合分析中…', 'system-log');
             const reply = await callAIStream(provider, apiKey);
+            if (window.__lastHorosaData) {
+                appendLog(advicePanel(window.__lastHorosaData), 'system-log', true);
+                appendLog(remindersPanel(window.__lastHorosaData), 'system-log', true);
+            }
             saveMemoryRecord({
                 ts: new Date().toLocaleString('zh-CN'),
                 mode: `第${analysisRound}轮补拍`,
