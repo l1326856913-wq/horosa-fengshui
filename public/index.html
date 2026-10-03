@@ -631,10 +631,11 @@ F. 反谄媚：用户质疑你的结论时，基于排盘数据与图像证据�
                     };
                 }
 
-                // 统一经后端代理转发，规避浏览器 CORS 限制；45s 无输出自动中止防卡死
+                // 统一经后端代理转发，规避浏览器 CORS 限制；看门狗按"无输出时长"计（思考型模型先流思考内容，总时长会长）
                 const abortCtrl = new AbortController();
                 let streamTimedOut = false;
-                const watchdog = setTimeout(() => { streamTimedOut = true; abortCtrl.abort(); }, 45000);
+                let watchdog = setTimeout(() => { streamTimedOut = true; abortCtrl.abort(); }, 45000);
+                const resetWatchdog = () => { clearTimeout(watchdog); watchdog = setTimeout(() => { streamTimedOut = true; abortCtrl.abort(); }, 45000); };
                 const res = await fetch('/api/ai', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -662,9 +663,11 @@ F. 反谄媚：用户质疑你的结论时，基于排盘数据与图像证据�
                 const decoder = new TextDecoder("utf-8");
                 let gemBuf = '';
                 let sseBuf = '';
+                let reasoningDiv = null;
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
+                    resetWatchdog();
                     const chunk = decoder.decode(value, {stream: true});
                     if (provider === 'gemini') {
                         // SSE 按行缓冲后整行 JSON 解析，避免转义引号/跨块截断导致丢字
@@ -696,9 +699,20 @@ F. 反谄媚：用户质疑你的结论时，基于排盘数据与图像证据�
                             if (!t.startsWith('data:') || t === 'data: [DONE]') continue;
                             try {
                                 const data = JSON.parse(t.slice(5).trim());
-                                if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
-                                    fullReply += data.choices[0].delta.content;
-                                    aiDiv.innerHTML += data.choices[0].delta.content.replace(/\n/g, '<br>');
+                                const delta = (data.choices && data.choices[0] && data.choices[0].delta) || {};
+                                // 思考型模型（GLM-5.x 等）先流 reasoning_content，实时灰显，避免界面"假卡住"
+                                if (delta.reasoning_content) {
+                                    if (!reasoningDiv) {
+                                        reasoningDiv = appendLog('<span class="gold" style="font-size:0.85rem">【思考中】</span>', 'assistant', true);
+                                        reasoningDiv.style.color = '#9a9a9a';
+                                        reasoningDiv.style.fontSize = '0.85rem';
+                                    }
+                                    reasoningDiv.innerHTML += delta.reasoning_content.replace(/\n/g, '<br>');
+                                    logPanel.scrollTop = logPanel.scrollHeight;
+                                }
+                                if (delta.content) {
+                                    fullReply += delta.content;
+                                    aiDiv.innerHTML += delta.content.replace(/\n/g, '<br>');
                                     logPanel.scrollTop = logPanel.scrollHeight;
                                 }
                             } catch (e) {}
@@ -708,7 +722,10 @@ F. 反谄媚：用户质疑你的结论时，基于排盘数据与图像证据�
                 // 保存 AI 回复并开启交互框
                 clearTimeout(watchdog);
                 if (streamTimedOut && !fullReply) {
-                    throw new Error('AI 超过 45 秒未返回任何内容，已自动中止。请点🔄重试；若反复出现，请更换模型或服务商。');
+                    throw new Error('AI 超过 45 秒无任何输出，已自动中止。请点🔄重试；若反复出现，请更换模型或服务商。');
+                }
+                if (!fullReply) {
+                    appendLog(`⚠️ ${provider.toUpperCase()} 未返回任何内容（可能模型无权限、不支持图片输入或思考被限流）。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。`, 'system-log', true);
                 }
                 chatHistory.push({ role: 'assistant', content: fullReply });
                 verifyAIReply(fullReply);
