@@ -49,13 +49,20 @@ export default async function handler(req, res) {
     try {
       const url = `https://restapi.amap.com/v3/staticmap?location=${lng},${lat}&zoom=15&size=500*500&key=${gaode_key}`;
       const response = await fetch(url);
-      if (response.ok) {
+      const contentType = response.headers.get('content-type') || '';
+      // 高德出错时返回 200 + JSON 错误体（如 INVALID_USER_KEY），必须按 content-type 区分
+      if (response.ok && contentType.includes('image')) {
         const arrayBuffer = await response.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         const img_b64 = buffer.toString('base64');
         return res.status(200).json({ status: 'success', image_base64: img_b64 });
       }
-      return res.status(400).json({ status: 'error', message: '地图获取失败' });
+      let detail = `HTTP ${response.status}`;
+      try {
+        const errBody = JSON.parse(await response.text());
+        if (errBody.info) detail = errBody.info;
+      } catch { /* 非 JSON 错误体 */ }
+      return res.status(400).json({ status: 'error', message: `高德地图获取失败: ${detail}（请检查 Key 是否有效及是否开通静态地图服务）` });
     } catch (e) {
       return res.status(500).json({ status: 'error', message: e.message });
     }
