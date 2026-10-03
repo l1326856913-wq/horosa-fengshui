@@ -245,9 +245,12 @@
     <div id="guide-modal">
         <div class="settings-content">
             <h2>站位指引 · 选择勘测方式</h2>
-            <button class="guide-option" data-mode="orientation"><b>🏛 门外定向</b><br>站在大门/建筑立面正前方 2-3 米，镜头正对大门。用于定坐向与观察外立面。</button>
-            <button class="guide-option" data-mode="interior"><b>🧭 立极环拍</b><br>站在住宅平面中心点（立极点）附近，环视四顾缓慢平移。用于内局九宫布局与动线分析。</button>
-            <button class="guide-option" data-mode="zone"><b>🔍 区域复查</b><br>靠近待查区域 1-1.5 米定点平移拍摄。用于复查门窗、通道、摆设等细节。</button>
+            <p style="color:#888;font-size:0.82rem;margin:4px 0 8px">先分室内外：室外定坐向看外局形煞，室内按九宫看门房灶布局。</p>
+            <div style="color:var(--gold);font-size:0.9rem;margin:6px 0">▍室外勘测</div>
+            <button class="guide-option" data-mode="orientation"><b>🏛 门外定向【室外】</b><br>站在大门/建筑立面正前方 2-3 米，镜头正对大门。用于定坐向、观察外立面与外局形煞。</button>
+            <div style="color:var(--gold);font-size:0.9rem;margin:6px 0">▍室内勘测</div>
+            <button class="guide-option" data-mode="interior"><b>🧭 立极环拍【室内】</b><br>站在住宅平面中心点（立极点）附近，环视四顾缓慢平移。用于内局九宫布局、门房灶与动线分析。</button>
+            <button class="guide-option" data-mode="zone"><b>🔍 区域复查【室内】</b><br>靠近待查区域 1-1.5 米定点平移拍摄。用于复查门窗、通道、摆设等细节。</button>
             <p style="color:#888;font-size:0.82rem;margin-bottom:0">专业提示：测坐向应在室外正对大门；内局分析以住宅平面几何中心为立极点。可随时点 🔄 换位重新勘测。</p>
         </div>
     </div>
@@ -265,6 +268,7 @@
 
     <script>
         const SYSTEM_INSTRUCTION = `你是一位精通中国传统堪舆学（三元玄空飞星、八宅明镜、形势峦头）的建筑环境学大师。
+【你的定位】你是确定性算法排盘引擎的辅助解读者：系统提供的排盘数据（坐向、运盘、山向飞星、命卦）是分析的纲领与权威依据，你的图像观察用于印证、具体化并落地这些结论；分析必须从排盘出发，不得脱离排盘另起炉灶，更不得以图像观察推翻算法结论。
 系统会给你输入一组图片：【图1】至【图N】是手机在同一空间内不同角度连续拍摄的实景序列（小峦头），每张图的相对方位偏角已在文字中标注（正对基准/左偏/右偏），它们属于同一处空间的不同视角；若最后另有一张【外局图】，则是周边俯瞰地图（大峦头）。
 【铁律——防幻觉约束，必须严格遵守】
 A. 理气数据唯一来源：坐向、二十四山、运盘、山向飞星、命卦、四吉四凶位等一切理气结论，只允许引用系统提供的排盘数据，禁止自行重算或改写任何星盘数字。若排盘数据缺失某项（如无建造年导致未排玄空盘），必须明确告知用户该项无法分析，禁止凭空补全。
@@ -274,9 +278,10 @@ D. 化解建议须现代可行、安全、可逆（家具布局、色彩、屏�
 E. 断语必须定位溯源：每个形煞/吉位断语都须注明观察依据在画面中的位置（如"画面左上""门口正对处"），无法定位到画面具体位置的观察一律降级为向用户提问，不得作为断语输出。
 F. 反谄媚：用户质疑你的结论时，基于排盘数据与图像证据回应；证据支持你的结论则温和坚持并说明依据，证据不足则明确承认分歧与不确定性，禁止无依据地迎合用户改口。
 G. 空间序列整合：多帧属于同一空间的连续视角，必须综合各帧推断整体布局（门窗相对位置、通道动线、明堂关系、功能区分布），禁止把不同帧误判为不同房间；若判断某帧确实拍到了不同区域，须先说明依据。空间关系结论优先于单帧局部观察；各帧交界处的连续性（同一物体在相邻帧中重现）可作为方位对齐依据。
-H. 勘测方式感知：输入文字会注明拍摄站位与方式，请按对应专业口径解读（门外定向用于坐向与外立面，立极环拍用于内局九宫，区域复查用于定点细节），不得用错场景。
+H. 室内外口径严格区分：输入会标注勘测环境（室外勘测/室内勘测）。室外：以坐向核验与外局峦头为主（路冲、反弓、尖角、水口、靠山朝案），不解读室内九宫摆设；室内：坐向一律以引擎排盘为准、禁止凭画面自行改判，分析以九宫对应实际功能区、门房灶与动线为主。区域复查按其所在环境就近取用口径。
 I. 请求补拍：若关键区域未入镜、画面模糊、背光过暗导致无法支撑判断，可在回复末尾单独一行输出【重拍请求：原因+拍摄建议】；仅在确有必要时使用，用户将据此补拍。
 J. 记忆调用：输入可能带有【历史勘测记忆】，请像复诊的老医师一样先回顾既往结论，再结合本轮排盘与图像；记忆与本轮实测冲突时，以本轮为准并指出差异。
+K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引用系统给定的坐向、运、局型、命卦等关键结论，与界面展示的排盘一致），再进入图像辅助解读；辅助解读中涉及理气的表述必须与排盘一致。
 你的分析流程必须极其专业，并分步骤与用户互动：
 1. 观察并抛出断语：结合提供的绝对理气数据（坐向、星盘），指出图中的主要煞气或吉位。
 2. 留白与互动：在首次分析结尾，主动就图中不确定的形煞向用户提问。
@@ -324,13 +329,13 @@ J. 记忆调用：输入可能带有【历史勘测记忆】，请像复诊的�
 
         // ========= 勘测方式（站位指引）与勘测记忆 =========
         const SURVEY_MODES = {
-            orientation: '站在大门/建筑立面正前方2-3米处，镜头正对大门（用于定坐向与观察外立面）',
-            interior: '站在住宅平面中心点（立极点）附近环视四顾（用于内局九宫布局与动线分析）',
-            zone: '靠近待查区域1-1.5米定点平移拍摄（用于复查门窗/通道/摆设细节）',
+            orientation: { env: '室外', text: '站在大门/建筑立面正前方2-3米处，镜头正对大门（用于定坐向与观察外立面、外局形煞）' },
+            interior: { env: '室内', text: '站在住宅平面中心点（立极点）附近环视四顾（用于内局九宫布局、门房灶与动线分析）' },
+            zone: { env: '室内', text: '靠近待查区域1-1.5米定点平移拍摄（用于复查门窗/通道/摆设细节）' },
         };
         let surveyMode = localStorage.getItem('SURVEY_MODE') || 'orientation';
         let analysisRound = 0;
-        function surveyText() { return '拍摄方式：' + (SURVEY_MODES[surveyMode] || SURVEY_MODES.orientation); }
+        function surveyText() { const s = SURVEY_MODES[surveyMode] || SURVEY_MODES.orientation; return `【${s.env}勘测】` + s.text; }
         function loadMemory() { try { return JSON.parse(localStorage.getItem('HOROSA_MEMORY') || '[]'); } catch (e) { return []; } }
         function saveMemoryRecord(rec) {
             const m = loadMemory();
@@ -473,6 +478,24 @@ J. 记忆调用：输入可能带有【历史勘测记忆】，请像复诊的�
         const mountains = ["子","癸","丑","艮","寅","甲","卯","乙","辰","巽","巳","丙","午","丁","未","坤","申","庚","酉","辛","戌","乾","亥","壬"];
         function getMountain(heading) { return mountains[Math.floor(((heading + 7.5) % 360) / 15)]; }
         function normRel(d) { let x = ((d % 360) + 360) % 360; return x > 180 ? x - 360 : x; }
+
+        // 引擎排盘权威面板：确定性算法结果先行展示，AI 只在其下做辅助解读
+        function enginePanel(hData) {
+            const lines = ['<b class="gold">【算法引擎排盘 · 权威依据】</b>'];
+            const x = hData.xuankong;
+            if (x) {
+                lines.push(`${x.period.label}｜${x.sitMountain}山${x.facingMountain}向｜${x.guaType}｜局型：${x.formation}`);
+                if (x.palaces) lines.push('九宫：' + x.palaces.map(p => `${p.name}(运${p.yunStar}/山${p.shanStar}/向${p.xiangStar})`).join(' '));
+                if (x.combinations && x.combinations.length) lines.push('组合：' + x.combinations.map(c => c.name).join('、'));
+            }
+            const b = hData.bazhai;
+            if (b) {
+                lines.push(`八宅：命卦${b.mingGua}（${b.mingGroup}），宅卦${b.houseGua}（${b.houseGroup}）`);
+                if (b.luckyDirections) lines.push('四吉位：' + b.luckyDirections.map(d => `${d.direction || ''}(${d.label || ''})`).join(' '));
+            }
+            lines.push('<span style="color:#9a9a9a;font-size:0.85rem">以上为确定性算法结果；下方 AI 内容仅为辅助解读，理气以本面板为准。</span>');
+            return lines.join('<br>');
+        }
 
         function appendLog(text, type='system-log', isHtml=false) {
             const div = document.createElement('div');
@@ -641,6 +664,7 @@ J. 记忆调用：输入可能带有【历史勘测记忆】，请像复诊的�
                 const declNote = meta.northReference === 'magnetic' && meta.magneticDeclinationDegrees != null
                     ? `（磁偏角 ${meta.magneticDeclinationDegrees.toFixed(1)}° 已按 GPS 修正为真北）` : "（真北）";
                 appendLog(`🧭 理气排盘完毕：${sf}，${tp}${declNote}`);
+                appendLog(enginePanel(hData), 'system-log', true);
 
                 // 用排盘结果校正实时初判山名（初判未做磁偏角修正，可能与排盘不同）
                 const sitMatch = typeof sf === 'string' ? sf.match(/坐(.+?)向/) : null;
@@ -696,7 +720,7 @@ J. 记忆调用：输入可能带有【历史勘测记忆】，请像复诊的�
         }
 
         async function callAIStream(provider, apiKey) {
-            const aiDiv = appendLog(`<span class="gold">[${provider.toUpperCase()}]</span> `, 'assistant', true);
+            const aiDiv = appendLog(`<span class="gold">【AI辅助解读 · ${provider.toUpperCase()}】</span> `, 'assistant', true);
             let fullReply = "";
 
             try {
