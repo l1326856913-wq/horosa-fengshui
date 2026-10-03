@@ -956,12 +956,17 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                     }
                     payload = {
                         model: apiModel,
-                        // 显式提高输出上限：GLM-5.x 深度思考可能吃满默认额度导致正文为空；
-                        // 重试路径可关闭深度思考（thinking: disabled）
-                        body: Object.assign(
-                            { model: apiModel, stream: true, messages: filteredHistory, max_tokens: 32768 },
-                            opts.thinkingLevel ? { thinking: { type: opts.thinkingLevel } } : {}
-                        )
+                        // GLM-5.3 官方口径（docs.bigmodel.cn）：思考强制开启(thinking.type=enabled)，
+                        // 思考强度由独立参数 reasoning_effort 控制(low/high/max，默认max——默认max思考过长是正文为空的根因)。
+                        // 默认 high（用户要求高思考），失败重试降为 low；GLM-5.3 Flash max_tokens 上限 131072
+                        body: {
+                            model: apiModel,
+                            stream: true,
+                            messages: filteredHistory,
+                            max_tokens: 65536,
+                            thinking: { type: 'enabled' },
+                            reasoning_effort: opts.reasoningEffort || 'high',
+                        }
                     };
                 }
 
@@ -1092,12 +1097,12 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 }
                 if (!fullReply) {
                     // GLM 特有：深度思考占满输出额度，只产出思考没有正文 → 自动关闭思考重试一次
-                    if (provider === 'glm' && reasoningSeen && opts.thinkingLevel !== 'low') {
-                        appendLog('⚠️ GLM 只输出了思考过程、未给出正文（深度思考占满输出额度）。已自动降低思考强度为 low 重试一次…', 'system-log', true);
-                        return callAIStream(provider, apiKey, { thinkingLevel: 'low' });
+                    if (provider === 'glm' && reasoningSeen && opts.reasoningEffort !== 'low') {
+                        appendLog('⚠️ GLM 只输出了思考过程、未给出正文（max 级深度思考占满输出额度）。已自动将思考强度降为 low 重试一次…', 'system-log', true);
+                        return callAIStream(provider, apiKey, { reasoningEffort: 'low' });
                     }
                     const why = reasoningSeen
-                        ? '降低思考强度后仍未给出正文。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。'
+                        ? '降低思考强度(low)后仍未给出正文。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。'
                         : '未返回任何内容（可能模型无权限、不支持图片输入或思考被限流）。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。';
                     appendLog(`⚠️ ${provider.toUpperCase()} ${why}`, 'system-log', true);
                 }
