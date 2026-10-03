@@ -100,6 +100,8 @@ export default async function handler(req, res) {
       res.status(upstream.status);
       res.setHeader('Content-Type', upstream.headers.get('content-type') || 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('X-Accel-Buffering', 'no');
+      if (typeof res.flushHeaders === 'function') res.flushHeaders();
       // 透传上游流式响应
       const reader = upstream.body.getReader();
       const pump = async () => {
