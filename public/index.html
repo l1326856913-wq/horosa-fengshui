@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Horosa AR</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --glass-bg: rgba(10, 10, 12, 0.65);
+            --gold: #D4AF37;
+            --text-main: #EAEAEA;
+            --safe-top: env(safe-area-inset-top, 20px);
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+        }
+        
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--text-main);
+        }
+
+        #camera-view {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1;
+        }
+
+        #hud-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2;
+            pointer-events: none; display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .top-panel {
+            margin-top: var(--safe-top); margin-left: 16px; margin-right: 16px; padding: 16px;
+            background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px; border: 1px solid rgba(212, 175, 55, 0.3);
+            display: flex; justify-content: space-between; align-items: center; position: relative;
+        }
+
+        .heading-display { font-size: 2.5rem; font-weight: 200; color: var(--gold); font-variant-numeric: tabular-nums; }
+        .mountains-display { font-size: 1.2rem; text-align: right; }
+
+        .center-reticle {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 200px; height: 200px; border: 1px solid rgba(212, 175, 55, 0.5); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; transition: all 0.3s;
+        }
+        .center-reticle::before, .center-reticle::after {
+            content: ''; position: absolute; background: rgba(212, 175, 55, 0.8);
+        }
+        .center-reticle::before { width: 10px; height: 1px; }
+        .center-reticle::after { width: 1px; height: 10px; }
+        
+        .center-reticle.locked {
+            border-color: #34c759; box-shadow: 0 0 15px rgba(52, 199, 89, 0.5);
+        }
+        .center-reticle.locked::before, .center-reticle.locked::after { background: #34c759; }
+
+        .bottom-panel {
+            margin-bottom: var(--safe-bottom); margin-left: 16px; margin-right: 16px; padding: 20px;
+            background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-radius: 16px; border: 1px solid rgba(212, 175, 55, 0.3);
+            display: flex; flex-direction: column;
+            min-height: 120px; max-height: 40vh; pointer-events: auto;
+        }
+
+        #log-panel {
+            flex: 1; overflow-y: auto; font-size: 0.95rem; line-height: 1.6; color: var(--text-main);
+            scroll-behavior: smooth; margin-bottom: 10px;
+        }
+        .chat-msg { margin-bottom: 12px; }
+        .chat-msg.system-log { color: #888; font-size: 0.85rem; }
+        .chat-msg.user { color: #fff; background: rgba(212, 175, 55, 0.2); padding: 8px 12px; border-radius: 8px; display: inline-block; }
+        .chat-msg.assistant { color: var(--text-main); }
+        .gold { color: var(--gold); }
+
+        #chat-input-area {
+            display: none; gap: 8px; margin-top: auto;
+        }
+        #chat-input-area input {
+            flex: 1; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.5); 
+            border: 1px solid rgba(212, 175, 55, 0.5); color: white; outline: none;
+        }
+        #chat-input-area button {
+            padding: 10px 16px; border-radius: 8px; background: var(--gold); color: #000; 
+            font-weight: bold; border: none; cursor: pointer;
+        }
+
+        #auth-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000;
+            z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        .btn-gold {
+            background: transparent; color: var(--gold); border: 1px solid var(--gold);
+            padding: 12px 32px; font-size: 1.2rem; border-radius: 24px; margin-top: 20px; cursor: pointer; pointer-events: auto;
+        }
+        
+        #capture-canvas { display: none; }
+        
+        .status-indicator {
+            position: absolute; top: -10px; right: -10px; width: 10px; height: 10px;
+            border-radius: 50%; background: #ff3b30; box-shadow: 0 0 8px #ff3b30;
+        }
+        .status-indicator.analyzing { background: #ffcc00; box-shadow: 0 0 8px #ffcc00; }
+        .status-indicator.connected { background: #34c759; box-shadow: 0 0 8px #34c759; }
+        
+        .provider-select {
+            background: transparent; color: var(--gold); border: 1px solid rgba(212, 175, 55, 0.5);
+            border-radius: 8px; padding: 4px; margin-top: 8px; font-size: 0.9rem; outline: none; pointer-events: auto;
+        }
+        .provider-select option { background: #000; }
+
+        .settings-btn {
+            position: absolute; top: 16px; right: 16px; width: 32px; height: 32px;
+            background: transparent; border: none; color: var(--gold); font-size: 1.5rem;
+            cursor: pointer; pointer-events: auto; z-index: 10; display: flex; align-items: center; justify-content: center;
+        }
+        
+        .reset-btn {
+            position: absolute; top: 16px; left: 16px; width: 40px; height: 40px;
+            background: rgba(0,0,0,0.6); border: 1px solid var(--gold); border-radius: 50%;
+            color: var(--gold); font-size: 1.2rem; cursor: pointer; display: none; 
+            pointer-events: auto; z-index: 10; align-items: center; justify-content: center;
+        }
+
+        #settings-modal {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 999; justify-content: center; align-items: center; pointer-events: auto;
+        }
+        .settings-content {
+            background: #111; border: 1px solid var(--gold); border-radius: 16px; padding: 24px; width: 80%; max-width: 350px;
+        }
+        .settings-content h2 { color: var(--gold); margin-top: 0; font-weight: 300; }
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; color: #aaa; margin-bottom: 4px; font-size: 0.9rem; }
+        .input-group input {
+            width: 100%; background: #222; border: 1px solid #444; color: #fff;
+            padding: 8px; border-radius: 8px; box-sizing: border-box;
+        }
+        .btn-row { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+        .btn-small { padding: 8px 16px; border-radius: 16px; border: 1px solid var(--gold); background: transparent; color: var(--gold); cursor: pointer; }
+        .btn-solid { background: var(--gold); color: #000; font-weight: bold; }
+        
+        #map-view { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1.5; }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src='https://unpkg.com/@turf/turf@6/turf.min.js'></script>
+</head>
+<body>
+
+    <div id="auth-overlay">
+        <h1 style="color: var(--gold); font-weight: 300;">Horosa AR</h1>
+        <p style="color: #888;">需要相机与罗盘权限</p>
+        <button class="btn-gold" id="start-btn">开启堪舆</button>
+    </div>
+
+    <video id="camera-view" autoplay playsinline muted></video>
+    <div id="map-view"></div>
+    <canvas id="capture-canvas"></canvas>
+
+    <button class="reset-btn" id="reset-btn" title="重新勘测">🔄</button>
+    <button class="settings-btn" id="open-settings-btn">⚙️</button>
+    <button id="switch-mode-btn" style="position: absolute; top: 60px; right: 16px; background: rgba(0,0,0,0.6); border: 1px solid var(--gold); border-radius: 8px; color: var(--gold); padding: 6px 12px; cursor: pointer; pointer-events: auto; z-index: 10;">地图拉线定向</button>
+    
+    <div id="settings-modal">
+        <div class="settings-content">
+            <h2>API Key 设置 (本地保存)</h2>
+            <div class="input-group"><label>Gemini API Key</label><input type="password" id="key-gemini" placeholder="AIzaSy..."></div>
+            <div class="input-group"><label>DeepSeek API Key</label><input type="password" id="key-deepseek" placeholder="sk-..."></div>
+            <div class="input-group"><label>Zhipu GLM API Key</label><input type="password" id="key-glm" placeholder="..."></div>
+            <div class="input-group"><label>高德地图 Web API Key</label><input type="password" id="key-gaode" placeholder="可选，用于大峦头分析"></div>
+            <div class="input-group"><label>住宅建造年或起运年 (公历，玄空排盘必需)</label><input type="number" id="input-house-year" placeholder="例如：2015"></div>
+            <div class="input-group"><label>出生年份 (公历，八宅必需)</label><input type="number" id="input-birth-year" placeholder="例如：1990"></div>
+            <div class="input-group"><label>性别 (八宅必需)</label>
+                <select id="input-gender" style="width: 100%; background: #222; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px;">
+                    <option value="">未选择</option>
+                    <option value="male">男</option>
+                    <option value="female">女</option>
+                </select>
+            </div>
+            <div class="btn-row">
+                <button class="btn-small" id="close-settings-btn">取消</button>
+                <button class="btn-small btn-solid" id="save-settings-btn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="hud-container">
+        <div class="top-panel">
+            <div class="status-indicator" id="status-dot"></div>
+            <div>
+                <div class="heading-display"><span id="heading-val">0</span>°</div>
+                <select class="provider-select" id="ai-provider">
+                    <option value="gemini">Gemini 3.1 Pro</option>
+                    <option value="deepseek">DeepSeek</option>
+                    <option value="glm">Zhipu GLM-5.3-Flash (多模态)</option>
+                </select>
+            </div>
+            <div class="mountains-display">
+                <div id="mountain-name" style="color: var(--gold); font-size: 1.5rem; margin-bottom: 4px;">--山</div>
+                <div id="gua-name" style="font-size: 1rem; color: #888;">正在获取方位...</div>
+            </div>
+        </div>
+
+        <div class="center-reticle" id="reticle"></div>
+
+        <div class="bottom-panel">
+            <div id="log-panel">
+                <div class="chat-msg system-log">等待罗盘稳定... 当您停顿 1.5 秒时将自动锁定画面进行深度分析。<br>⚖️ 分析结果仅供传统环境文化参考，不构成建筑、装修或投资决策依据。</div>
+            </div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-input" placeholder="有任何疑问或需要化解？直接询问大师...">
+                <button id="send-chat-btn">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <button id="manual-capture-btn" class="btn-gold" style="display: none; position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);">拍摄实景并堪舆</button>
+
+    <script>
+        const SYSTEM_INSTRUCTION = `你是一位精通中国传统堪舆学（三元玄空飞星、八宅明镜、形势峦头）的建筑环境学大师。
+系统会给你输入两张图：【图1】是手机摄像头拍下的室内实景（小峦头）；如果有【图2】，则是周边街道俯瞰地图（大峦头）。
+【铁律——防幻觉约束，必须严格遵守】
+A. 理气数据唯一来源：坐向、二十四山、运盘、山向飞星、命卦、四吉四凶位等一切理气结论，只允许引用系统提供的排盘数据，禁止自行重算或改写任何星盘数字。若排盘数据缺失某项（如无建造年导致未排玄空盘），必须明确告知用户该项无法分析，禁止凭空补全。
+B. 形煞断语必须基于图像证据：只能指出图片中实际可见的形煞（如路冲、尖角、反弓、门冲等）。凡图片中看不清或无法确认的事项（窗外是否有高压线、门后布局、楼外是否有反弓路等），必须以提问方式向用户求证，禁止臆断。
+C. 区分层级：理气（固定计算结果）与峦头（图像观察）必须分开陈述，不得混为一谈；两套体系结论不一致时按"口径不同需分述"处理，不强行调和。
+D. 化解建议须现代可行、安全、可逆（家具布局、色彩、屏风、绿植等），禁止推荐开口葫芦、符咒等无法验证真伪的商品化处置，更不得制造恐吓性断言逼迫消费。
+你的分析流程必须极其专业，并分步骤与用户互动：
+1. 观察并抛出断语：结合提供的绝对理气数据（坐向、星盘），指出图中的主要煞气或吉位。
+2. 留白与互动：在首次分析结尾，主动就图中不确定的形煞向用户提问。
+3. 对答如流：如果是用户的后续追问，请针对性地解答，并给出切实可行的现代美学化解方案。`;
+
+        const video = document.getElementById('camera-view');
+        const canvas = document.getElementById('capture-canvas');
+        const headingVal = document.getElementById('heading-val');
+        const logPanel = document.getElementById('log-panel');
+        const chatInputArea = document.getElementById('chat-input-area');
+        const chatInput = document.getElementById('chat-input');
+        const sendChatBtn = document.getElementById('send-chat-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const reticle = document.getElementById('reticle');
+        const manualCaptureBtn = document.getElementById('manual-capture-btn');
+        
+        const settingsModal = document.getElementById('settings-modal');
+        document.getElementById('open-settings-btn').onclick = () => settingsModal.style.display = 'flex';
+        document.getElementById('close-settings-btn').onclick = () => settingsModal.style.display = 'none';
+        document.getElementById('save-settings-btn').onclick = () => {
+            ['gemini', 'deepseek', 'glm', 'gaode'].forEach(k => {
+                localStorage.setItem(k.toUpperCase()+'_KEY', document.getElementById(`key-${k}`).value.trim());
+            });
+            localStorage.setItem('BIRTH_YEAR', document.getElementById('input-birth-year').value);
+            localStorage.setItem('GENDER', document.getElementById('input-gender').value);
+            localStorage.setItem('HOUSE_YEAR', document.getElementById('input-house-year').value);
+            settingsModal.style.display = 'none';
+        };
+
+        ['gemini', 'deepseek', 'glm', 'gaode'].forEach(k => {
+            document.getElementById(`key-${k}`).value = localStorage.getItem(k.toUpperCase()+'_KEY') || '';
+        });
+        document.getElementById('input-birth-year').value = localStorage.getItem('BIRTH_YEAR') || '';
+        document.getElementById('input-gender').value = localStorage.getItem('GENDER') || '';
+        document.getElementById('input-house-year').value = localStorage.getItem('HOUSE_YEAR') || '';
+
+        let currentHeading = 0;
+        let smoothedHeading = 0;
+        let isAnalyzing = false;
+        let stableTimer = null;
+        let lastStableHeading = null;
+        let userLat = null, userLng = null;
+        let chatHistory = []; // 保存通用对话历史
+        
+        let map;
+        let isMapMode = false;
+        let mapStartPoint = null;
+        let mapEndPoint = null;
+        let mapMarkerStart = null;
+        let mapMarkerEnd = null;
+        let mapPolyline = null;
+        let isCompassCalibrated = false;
+        let compassHintShown = false;
+
+        document.getElementById('switch-mode-btn').onclick = () => {
+            isMapMode = !isMapMode;
+            if (isMapMode) {
+                document.getElementById('camera-view').style.display = 'none';
+                document.getElementById('map-view').style.display = 'block';
+                document.getElementById('switch-mode-btn').innerText = '切换摄像头测向';
+                document.getElementById('reticle').style.display = 'none';
+                manualCaptureBtn.style.display = 'none';
+                initLeaflet();
+            } else {
+                document.getElementById('camera-view').style.display = 'block';
+                document.getElementById('map-view').style.display = 'none';
+                document.getElementById('switch-mode-btn').innerText = '地图拉线定向';
+                document.getElementById('reticle').style.display = 'flex';
+                
+                if (mapStartPoint && mapEndPoint) {
+                    isCompassCalibrated = true;
+                    appendLog(`📐 外部定向已锁定：${currentHeading.toFixed(1)}°。请将镜头对准室内，准备实景堪舆。`, 'system-log');
+                    manualCaptureBtn.style.display = 'block';
+                } else if (mapStartPoint) {
+                    resetMap();
+                }
+            }
+        };
+
+        manualCaptureBtn.onclick = () => {
+            manualCaptureBtn.style.display = 'none';
+            lockAndAnalyze();
+        };
+
+        function resetMap() {
+            mapStartPoint = null;
+            mapEndPoint = null;
+            if (mapMarkerStart) mapMarkerStart.remove();
+            if (mapMarkerEnd) mapMarkerEnd.remove();
+            if (mapPolyline) mapPolyline.remove();
+            appendLog('🗺️ 地图已重置，请点击建筑物坐山（起点）', 'system-log');
+        }
+
+        function initLeaflet() {
+            if (map) {
+                map.invalidateSize();
+                return;
+            }
+            
+            // 使用 Leaflet + Esri 免费高清卫星图，无需 API Key
+            map = L.map('map-view', {
+                preferCanvas: true // 使用 Canvas 渲染以便截图
+            }).setView([userLat || 39.908, userLng || 116.397], 18);
+            
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                maxZoom: 19
+            }).addTo(map);
+            
+            appendLog('🗺️ 免费高清卫星地图已加载，请在地图上点击房屋的“坐山”位置作为起点...', 'system-log');
+
+            map.on('click', (e) => {
+                if (isAnalyzing) return;
+                
+                if (!mapStartPoint) {
+                    mapStartPoint = [e.latlng.lat, e.latlng.lng];
+                    mapMarkerStart = L.circleMarker(mapStartPoint, { color: '#D4AF37', radius: 6, fillOpacity: 1 }).addTo(map);
+                    appendLog('📍 坐方（起点）已设定，现在请点击门向（终点）...', 'system-log');
+                } else if (!mapEndPoint) {
+                    mapEndPoint = [e.latlng.lat, e.latlng.lng];
+                    mapMarkerEnd = L.circleMarker(mapEndPoint, { color: '#ff3b30', radius: 6, fillOpacity: 1 }).addTo(map);
+                    
+                    mapPolyline = L.polyline([mapStartPoint, mapEndPoint], { color: '#D4AF37', weight: 4 }).addTo(map);
+
+                    // Turf.js point accepts [lng, lat]
+                    const pt1 = turf.point([mapStartPoint[1], mapStartPoint[0]]);
+                    const pt2 = turf.point([mapEndPoint[1], mapEndPoint[0]]);
+                    let bearing = turf.bearing(pt1, pt2);
+                    if (bearing < 0) bearing += 360;
+                    
+                    currentHeading = bearing;
+                    smoothedHeading = bearing;
+                    headingVal.innerText = currentHeading.toFixed(1);
+                    document.getElementById('mountain-name').innerText = getMountain(currentHeading) + "山(初判)";
+
+                    appendLog(`📐 地图拉线完成，计算得真北方位角：${currentHeading.toFixed(1)}°。请点击右上角切回摄像头拍摄实景！`, 'system-log');
+                }
+            });
+        }
+
+        const mountains = ["子","癸","丑","艮","寅","甲","卯","乙","辰","巽","巳","丙","午","丁","未","坤","申","庚","酉","辛","戌","乾","亥","壬"];
+        function getMountain(heading) { return mountains[Math.floor(((heading + 7.5) % 360) / 15)]; }
+
+        function appendLog(text, type='system-log', isHtml=false) {
+            const div = document.createElement('div');
+            div.className = `chat-msg ${type}`;
+            if (isHtml) div.innerHTML = text; else div.innerText = text;
+            logPanel.appendChild(div);
+            logPanel.scrollTop = logPanel.scrollHeight;
+            return div;
+        }
+
+        async function initCamera() {
+            try {
+                video.srcObject = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } });
+            } catch (err) {
+                video.srcObject = await navigator.mediaDevices.getUserMedia({ video: true });
+            }
+        }
+
+        function handleOrientation(event) {
+            if (isAnalyzing || isMapMode || isCompassCalibrated) return; // 锁定或地图模式下不更新罗盘
+            // iOS webkitCompassHeading 为磁北顺时针角；Android absolute 事件用 alpha 换算
+            let heading;
+            if (typeof event.webkitCompassHeading === 'number' && Number.isFinite(event.webkitCompassHeading)) {
+                heading = event.webkitCompassHeading;
+            } else if (typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
+                heading = (360 - event.alpha) % 360;
+            } else {
+                return; // 无有效罗盘数据，避免误锁 0°
+            }
+            heading = ((heading % 360) + 360) % 360;
+            if (!compassHintShown) {
+                compassHintShown = true;
+                appendLog('🧭 罗盘提示：请远离金属与电器，手持手机画"8"字校准后再测量，否则读数可偏差 10° 以上。', 'system-log');
+            }
+            if (smoothedHeading === 0) smoothedHeading = heading;
+            else {
+                let diff = heading - smoothedHeading;
+                if (diff > 180) diff -= 360;
+                if (diff < -180) diff += 360;
+                smoothedHeading = (smoothedHeading + diff * 0.1) % 360;
+                if (smoothedHeading < 0) smoothedHeading += 360;
+            }
+            currentHeading = smoothedHeading;
+            headingVal.innerText = currentHeading.toFixed(1);
+            document.getElementById('mountain-name').innerText = getMountain(currentHeading) + "山(初判)";
+            
+            if (lastStableHeading === null || Math.abs(currentHeading - lastStableHeading) > 3) {
+                lastStableHeading = currentHeading;
+                clearTimeout(stableTimer);
+                document.getElementById('status-dot').className = 'status-indicator connected';
+                stableTimer = setTimeout(lockAndAnalyze, 1500);
+            }
+        }
+
+        async function lockAndAnalyze() {
+            const provider = document.getElementById('ai-provider').value;
+            const apiKey = localStorage.getItem(provider.toUpperCase()+'_KEY');
+            if (!apiKey) {
+                appendLog(`请先点击右上角 ⚙️ 配置 ${provider.toUpperCase()} 的 API Key`, 'system-log', true);
+                return;
+            }
+
+            // 1. 冻结状态：暂停摄像头，显示重启按钮
+            isAnalyzing = true;
+            video.pause(); 
+            reticle.classList.add('locked');
+            resetBtn.style.display = 'flex';
+            document.getElementById('status-dot').className = 'status-indicator analyzing';
+            
+            logPanel.innerHTML = ''; // 清空提示
+            appendLog(`📍 锁定度数：${currentHeading.toFixed(1)}°，正在截取画面...`);
+
+            const frameBase64 = captureFrame();
+            let mapBase64 = null;
+            const gaodeKey = localStorage.getItem('GAODE_KEY');
+            const bYear = localStorage.getItem('BIRTH_YEAR');
+            const gender = localStorage.getItem('GENDER');
+
+            try {
+                // 2. 后端排盘与地图
+                // 方位基准：地图拉线为真北；罗盘为磁北，需服务端按 GPS 坐标算磁偏角修正
+                const usedMapCalibration = !!(mapStartPoint && mapEndPoint);
+                const houseYear = localStorage.getItem('HOUSE_YEAR');
+                const reqBody = {
+                    heading: currentHeading,
+                    northReference: usedMapCalibration ? 'true' : 'magnetic',
+                    uncertainty: usedMapCalibration ? 1.5 : 3
+                };
+                if (houseYear) reqBody.year = parseInt(houseYear);
+                if (userLat != null && userLng != null) { reqBody.lat = userLat; reqBody.lng = userLng; }
+                if (bYear) reqBody.birthYear = parseInt(bYear);
+                if (gender) reqBody.gender = gender;
+
+                const horosaRes = await fetch('/api/horosa', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reqBody)
+                });
+
+                if (!horosaRes.ok) {
+                    let errMsg = `后端排盘接口抛出 HTTP ${horosaRes.status}`;
+                    try { const errJson = await horosaRes.json(); if (errJson.message) errMsg = errJson.message; } catch (e) {}
+                    throw new Error(errMsg);
+                }
+                const horosaData = await horosaRes.json();
+
+                if (horosaData.error) throw new Error("排盘引擎报错: " + horosaData.error);
+
+                const hData = horosaData.data ? horosaData.data : horosaData;
+                const meta = horosaData.meta || {};
+
+                // 从 mingyu-core 提取结构化提示词
+                const mingyuPrompt = hData.prompt || "";
+                const evidencePrompt = hData.evidencePromptText || "";
+                const sf = hData.inputSummary?.orientationText || hData.sitting_facing || "未知坐向";
+                const tp = hData.inputSummary?.houseYear ? `宅运年份：${hData.inputSummary.houseYear}` : "未知运势";
+
+                const declNote = meta.northReference === 'magnetic' && meta.magneticDeclinationDegrees != null
+                    ? `（磁偏角 ${meta.magneticDeclinationDegrees.toFixed(1)}° 已按 GPS 修正为真北）` : "（真北）";
+                appendLog(`🧭 理气排盘完毕：${sf}，${tp}${declNote}`);
+
+                // 用排盘结果校正实时初判山名（初判未做磁偏角修正，可能与排盘不同）
+                const sitMatch = typeof sf === 'string' ? sf.match(/坐(.+?)向/) : null;
+                if (sitMatch) document.getElementById('mountain-name').innerText = sitMatch[1] + "山(排盘)";
+
+                if (userLat && userLng && gaodeKey) {
+                    appendLog("🗺️ 正在获取当地地理外局地图...");
+                    const mapRes = await fetch('/api/map', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lat: userLat, lng: userLng, gaode_key: gaodeKey })
+                    });
+                    const mapData = await mapRes.json();
+                    if (mapData.status === 'success') mapBase64 = mapData.image_base64;
+                }
+
+                // 3. 构建首次对话历史
+                chatHistory = [{ role: 'system', content: SYSTEM_INSTRUCTION }];
+                
+                const promptText = `理气排盘数据与结构化证据：\n${evidencePrompt}\n\n详细排盘信息：\n${mingyuPrompt}\n请结合图1实景${mapBase64?'与图2地图':''}进行深度堪舆分析，给出断语并可向我提问。`;
+                
+                let userContent = [{ type: "text", text: promptText }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${frameBase64}` } }];
+                if (mapBase64) userContent.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${mapBase64}` } });
+                
+                chatHistory.push({ role: 'user', content: userContent }); // OpenAI 格式保存
+                
+                appendLog(`🔮 宗师合参中，请稍候...`, 'system-log');
+                
+                await callAIStream(provider, apiKey);
+                
+            } catch (err) {
+                appendLog(`<span style="color:red">分析中断: ${err.message}</span>`, 'system-log', true);
+            }
+        }
+
+        async function callAIStream(provider, apiKey) {
+            const aiDiv = appendLog(`<span class="gold">[${provider.toUpperCase()}]</span> `, 'assistant', true);
+            let fullReply = "";
+
+            try {
+                let payload;
+                if (provider === 'gemini') {
+                    // 转换 history 为 Gemini 格式
+                    let geminiContents = chatHistory.filter(m => m.role !== 'system').map(m => {
+                        let parts = [];
+                        if (Array.isArray(m.content)) {
+                            m.content.forEach(c => {
+                                if (c.type === 'text') parts.push({ text: c.text });
+                                if (c.type === 'image_url') parts.push({ inlineData: { mimeType: "image/jpeg", data: c.image_url.url.split(',')[1] } });
+                            });
+                        } else {
+                            parts.push({ text: m.content });
+                        }
+                        return { role: m.role === 'assistant' ? 'model' : 'user', parts: parts };
+                    });
+                    payload = {
+                        model: 'gemini-3.1-pro-preview',
+                        body: {
+                            systemInstruction: { parts: [{ text: chatHistory[0].content }] },
+                            contents: geminiContents
+                        }
+                    };
+                } else {
+                    let apiModel = provider === 'deepseek' ? 'deepseek-chat' : 'glm-5.3-flash';
+                    let filteredHistory = chatHistory;
+                    // DeepSeek 不支持视觉输入，剔除所有图片
+                    if (provider === 'deepseek') {
+                        filteredHistory = chatHistory.map(msg => {
+                            if (Array.isArray(msg.content)) {
+                                const textPart = msg.content.find(c => c.type === 'text');
+                                return { role: msg.role, content: textPart ? textPart.text : '' };
+                            }
+                            return msg;
+                        });
+                        if (chatHistory.length === 2) {
+                            appendLog('⚠️ 提示：您选择了 DeepSeek，该模型不支持视觉，已自动剔除图片数据进行纯理气盲算。', 'system-log');
+                        }
+                    }
+                    payload = {
+                        model: apiModel,
+                        body: { model: apiModel, stream: true, messages: filteredHistory }
+                    };
+                }
+
+                // 统一经后端代理转发，规避浏览器 CORS 限制
+                const res = await fetch('/api/ai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, apiKey, payload })
+                });
+                if (!res.ok) {
+                    let errMsg = `AI 请求失败 HTTP ${res.status}`;
+                    try { const j = await res.json(); if (j.error) errMsg = j.error; } catch (e) {}
+                    throw new Error(errMsg);
+                }
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let gemBuf = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, {stream: true});
+                    if (provider === 'gemini') {
+                        // SSE 按行缓冲后整行 JSON 解析，避免转义引号/跨块截断导致丢字
+                        gemBuf += chunk;
+                        const lines = gemBuf.split('\n');
+                        gemBuf = lines.pop();
+                        for (const line of lines) {
+                            const raw = line.startsWith('data: ') ? line.slice(6) : line.trim();
+                            if (!raw || raw === '[DONE]') continue;
+                            try {
+                                const j = JSON.parse(raw);
+                                const parts = j.candidates?.[0]?.content?.parts || [];
+                                parts.forEach(p => {
+                                    if (p.text) {
+                                        fullReply += p.text;
+                                        aiDiv.innerHTML += p.text.replace(/\n/g, '<br>');
+                                    }
+                                });
+                                logPanel.scrollTop = logPanel.scrollHeight;
+                            } catch (e) {}
+                        }
+                    } else {
+                        const lines = chunk.split('\n');
+                        for (const line of lines) {
+                            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                                try {
+                                    const data = JSON.parse(line.slice(6));
+                                    if (data.choices && data.choices[0].delta && data.choices[0].delta.content) {
+                                        fullReply += data.choices[0].delta.content;
+                                        aiDiv.innerHTML += data.choices[0].delta.content.replace(/\n/g, '<br>');
+                                        logPanel.scrollTop = logPanel.scrollHeight;
+                                    }
+                                } catch (e) {}
+                            }
+                        }
+                    }
+                }
+                // 保存 AI 回复并开启交互框
+                chatHistory.push({ role: 'assistant', content: fullReply });
+                chatInputArea.style.display = 'flex';
+                setTimeout(() => chatInput.focus(), 100);
+            } catch (err) {
+                aiDiv.innerHTML += `<br><span style="color:red">错误: ${err.message}</span>`;
+            }
+        }
+
+        // 交互对话逻辑
+        sendChatBtn.onclick = async () => {
+            const text = chatInput.value.trim();
+            if (!text) return;
+            chatInput.value = '';
+            chatInputArea.style.display = 'none'; // 隐藏输入框，等待生成
+            
+            appendLog(text, 'user');
+            chatHistory.push({ role: 'user', content: text });
+            
+            const provider = document.getElementById('ai-provider').value;
+            const apiKey = localStorage.getItem(provider.toUpperCase()+'_KEY');
+            await callAIStream(provider, apiKey);
+        };
+        
+        chatInput.onkeypress = (e) => { if (e.key === 'Enter') sendChatBtn.click(); };
+
+        // 重新勘测逻辑
+        resetBtn.onclick = () => {
+            isAnalyzing = false;
+            if (!isMapMode) {
+                video.play();
+                logPanel.innerHTML = '<div class="chat-msg system-log">等待罗盘稳定... 当您停顿 1.5 秒时将自动锁定画面进行深度分析。<br>⚖️ 分析结果仅供传统环境文化参考，不构成建筑、装修或投资决策依据。</div>';
+            } else {
+                resetMap();
+            }
+            reticle.classList.remove('locked');
+            resetBtn.style.display = 'none';
+            chatInputArea.style.display = 'none';
+            lastStableHeading = null;
+        };
+
+        function captureFrame() {
+            if (isMapMode) {
+                // Leaflet 截图较复杂，在此模式下 LLM 主要依赖理气数据及高德静态外局图
+                // 返回一张 1x1 的纯黑占位图
+                const dummyCanvas = document.createElement('canvas');
+                dummyCanvas.width = 1; dummyCanvas.height = 1;
+                return dummyCanvas.toDataURL('image/jpeg').split(',')[1];
+            }
+            canvas.width = 720; 
+            canvas.height = (video.videoHeight / video.videoWidth) * 720 || 1280;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+        }
+
+        document.getElementById('start-btn').addEventListener('click', async () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    pos => { userLat = pos.coords.latitude; userLng = pos.coords.longitude; },
+                    err => console.warn("GPS 定位被拒绝")
+                );
+            }
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    if (await DeviceOrientationEvent.requestPermission() === 'granted') 
+                        window.addEventListener('deviceorientation', handleOrientation);
+                } catch (e) {}
+            } else {
+                window.addEventListener('deviceorientationabsolute', handleOrientation);
+            }
+            await initCamera().catch(err => {
+                appendLog('📷 相机启动失败：' + err.message + '。请检查浏览器权限，或在 HTTPS 环境下重试。', 'system-log', true);
+            });
+            document.getElementById('auth-overlay').style.display = 'none';
+        });
+    </script>
+</body>
+</html>

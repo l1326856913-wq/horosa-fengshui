@@ -1,0 +1,15 @@
+# 依赖与运行时
+node_modules/
+.vercel/
+
+# 本地环境与密钥（本项目密钥存于浏览器 localStorage，理论上不会出现在仓库，防御性排除）
+.env
+.env.*
+*.pem
+
+# 旧版备份文件，不入库
+*.bak
+
+# 系统文件
+.DS_Store
+Thumbs.db
