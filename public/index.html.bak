@@ -143,12 +143,7 @@
         .btn-row { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
         .btn-small { padding: 8px 16px; border-radius: 16px; border: 1px solid var(--gold); background: transparent; color: var(--gold); cursor: pointer; }
         .btn-solid { background: var(--gold); color: #000; font-weight: bold; }
-        
-        #map-view { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1.5; }
     </style>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src='https://unpkg.com/@turf/turf@6/turf.min.js'></script>
 </head>
 <body>
 
@@ -159,12 +154,10 @@
     </div>
 
     <video id="camera-view" autoplay playsinline muted></video>
-    <div id="map-view"></div>
     <canvas id="capture-canvas"></canvas>
 
     <button class="reset-btn" id="reset-btn" title="重新勘测">🔄</button>
     <button class="settings-btn" id="open-settings-btn">⚙️</button>
-    <button id="switch-mode-btn" style="position: absolute; top: 60px; right: 16px; background: rgba(0,0,0,0.6); border: 1px solid var(--gold); border-radius: 8px; color: var(--gold); padding: 6px 12px; cursor: pointer; pointer-events: auto; z-index: 10;">地图拉线定向</button>
     
     <div id="settings-modal">
         <div class="settings-content">
@@ -173,14 +166,6 @@
             <div class="input-group"><label>DeepSeek API Key</label><input type="password" id="key-deepseek" placeholder="sk-..."></div>
             <div class="input-group"><label>Zhipu GLM API Key</label><input type="password" id="key-glm" placeholder="..."></div>
             <div class="input-group"><label>高德地图 Web API Key</label><input type="password" id="key-gaode" placeholder="可选，用于大峦头分析"></div>
-            <div class="input-group"><label>出生年份 (公历，八宅必需)</label><input type="number" id="input-birth-year" placeholder="例如：1990"></div>
-            <div class="input-group"><label>性别 (八宅必需)</label>
-                <select id="input-gender" style="width: 100%; background: #222; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px;">
-                    <option value="">未选择</option>
-                    <option value="male">男</option>
-                    <option value="female">女</option>
-                </select>
-            </div>
             <div class="btn-row">
                 <button class="btn-small" id="close-settings-btn">取消</button>
                 <button class="btn-small btn-solid" id="save-settings-btn">保存</button>
@@ -196,7 +181,7 @@
                 <select class="provider-select" id="ai-provider">
                     <option value="gemini">Gemini 3.1 Pro</option>
                     <option value="deepseek">DeepSeek</option>
-                    <option value="glm">Zhipu GLM-5.3</option>
+                    <option value="glm">Zhipu GLM-5</option>
                 </select>
             </div>
             <div class="mountains-display">
@@ -218,8 +203,6 @@
         </div>
     </div>
 
-    <button id="manual-capture-btn" class="btn-gold" style="display: none; position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px);">拍摄实景并堪舆</button>
-
     <script>
         const SYSTEM_INSTRUCTION = `你是一位精通中国传统堪舆学（三元玄空飞星、八宅明镜、形势峦头）的建筑环境学大师。
 系统会给你输入两张图：【图1】是手机摄像头拍下的室内实景（小峦头）；如果有【图2】，则是周边街道俯瞰地图（大峦头）。
@@ -237,7 +220,6 @@
         const sendChatBtn = document.getElementById('send-chat-btn');
         const resetBtn = document.getElementById('reset-btn');
         const reticle = document.getElementById('reticle');
-        const manualCaptureBtn = document.getElementById('manual-capture-btn');
         
         const settingsModal = document.getElementById('settings-modal');
         document.getElementById('open-settings-btn').onclick = () => settingsModal.style.display = 'flex';
@@ -246,16 +228,12 @@
             ['gemini', 'deepseek', 'glm', 'gaode'].forEach(k => {
                 localStorage.setItem(k.toUpperCase()+'_KEY', document.getElementById(`key-${k}`).value.trim());
             });
-            localStorage.setItem('BIRTH_YEAR', document.getElementById('input-birth-year').value);
-            localStorage.setItem('GENDER', document.getElementById('input-gender').value);
             settingsModal.style.display = 'none';
         };
 
         ['gemini', 'deepseek', 'glm', 'gaode'].forEach(k => {
             document.getElementById(`key-${k}`).value = localStorage.getItem(k.toUpperCase()+'_KEY') || '';
         });
-        document.getElementById('input-birth-year').value = localStorage.getItem('BIRTH_YEAR') || '';
-        document.getElementById('input-gender').value = localStorage.getItem('GENDER') || '';
 
         let currentHeading = 0;
         let smoothedHeading = 0;
@@ -264,101 +242,6 @@
         let lastStableHeading = null;
         let userLat = null, userLng = null;
         let chatHistory = []; // 保存通用对话历史
-        
-        let map;
-        let isMapMode = false;
-        let mapStartPoint = null;
-        let mapEndPoint = null;
-        let mapMarkerStart = null;
-        let mapMarkerEnd = null;
-        let mapPolyline = null;
-        let isCompassCalibrated = false;
-
-        document.getElementById('switch-mode-btn').onclick = () => {
-            isMapMode = !isMapMode;
-            if (isMapMode) {
-                document.getElementById('camera-view').style.display = 'none';
-                document.getElementById('map-view').style.display = 'block';
-                document.getElementById('switch-mode-btn').innerText = '切换摄像头测向';
-                document.getElementById('reticle').style.display = 'none';
-                manualCaptureBtn.style.display = 'none';
-                initLeaflet();
-            } else {
-                document.getElementById('camera-view').style.display = 'block';
-                document.getElementById('map-view').style.display = 'none';
-                document.getElementById('switch-mode-btn').innerText = '地图拉线定向';
-                document.getElementById('reticle').style.display = 'flex';
-                
-                if (mapStartPoint && mapEndPoint) {
-                    isCompassCalibrated = true;
-                    appendLog(`📐 外部定向已锁定：${currentHeading.toFixed(1)}°。请将镜头对准室内，准备实景堪舆。`, 'system-log');
-                    manualCaptureBtn.style.display = 'block';
-                } else if (mapStartPoint) {
-                    resetMap();
-                }
-            }
-        };
-
-        manualCaptureBtn.onclick = () => {
-            manualCaptureBtn.style.display = 'none';
-            lockAndAnalyze();
-        };
-
-        function resetMap() {
-            mapStartPoint = null;
-            mapEndPoint = null;
-            if (mapMarkerStart) mapMarkerStart.remove();
-            if (mapMarkerEnd) mapMarkerEnd.remove();
-            if (mapPolyline) mapPolyline.remove();
-            appendLog('🗺️ 地图已重置，请点击建筑物坐山（起点）', 'system-log');
-        }
-
-        function initLeaflet() {
-            if (map) {
-                map.invalidateSize();
-                return;
-            }
-            
-            // 使用 Leaflet + Esri 免费高清卫星图，无需 API Key
-            map = L.map('map-view', {
-                preferCanvas: true // 使用 Canvas 渲染以便截图
-            }).setView([userLat || 39.908, userLng || 116.397], 18);
-            
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-                maxZoom: 19
-            }).addTo(map);
-            
-            appendLog('🗺️ 免费高清卫星地图已加载，请在地图上点击房屋的“坐山”位置作为起点...', 'system-log');
-
-            map.on('click', (e) => {
-                if (isAnalyzing) return;
-                
-                if (!mapStartPoint) {
-                    mapStartPoint = [e.latlng.lat, e.latlng.lng];
-                    mapMarkerStart = L.circleMarker(mapStartPoint, { color: '#D4AF37', radius: 6, fillOpacity: 1 }).addTo(map);
-                    appendLog('📍 坐方（起点）已设定，现在请点击门向（终点）...', 'system-log');
-                } else if (!mapEndPoint) {
-                    mapEndPoint = [e.latlng.lat, e.latlng.lng];
-                    mapMarkerEnd = L.circleMarker(mapEndPoint, { color: '#ff3b30', radius: 6, fillOpacity: 1 }).addTo(map);
-                    
-                    mapPolyline = L.polyline([mapStartPoint, mapEndPoint], { color: '#D4AF37', weight: 4 }).addTo(map);
-
-                    // Turf.js point accepts [lng, lat]
-                    const pt1 = turf.point([mapStartPoint[1], mapStartPoint[0]]);
-                    const pt2 = turf.point([mapEndPoint[1], mapEndPoint[0]]);
-                    let bearing = turf.bearing(pt1, pt2);
-                    if (bearing < 0) bearing += 360;
-                    
-                    currentHeading = bearing;
-                    smoothedHeading = bearing;
-                    headingVal.innerText = currentHeading.toFixed(1);
-                    document.getElementById('mountain-name').innerText = getMountain(currentHeading) + "山";
-                    
-                    appendLog(`📐 地图拉线完成，计算得真北方位角：${currentHeading.toFixed(1)}°。请点击右上角切回摄像头拍摄实景！`, 'system-log');
-                }
-            });
-        }
 
         const mountains = ["子","癸","丑","艮","寅","甲","卯","乙","辰","巽","巳","丙","午","丁","未","坤","申","庚","酉","辛","戌","乾","亥","壬"];
         function getMountain(heading) { return mountains[Math.floor(((heading + 7.5) % 360) / 15)]; }
@@ -381,7 +264,7 @@
         }
 
         function handleOrientation(event) {
-            if (isAnalyzing || isMapMode || isCompassCalibrated) return; // 锁定或地图模式下不更新罗盘
+            if (isAnalyzing) return; // 锁定后不再更新度数
             let heading = event.webkitCompassHeading || (360 - event.alpha) || 0;
             if (smoothedHeading === 0) smoothedHeading = heading;
             else {
@@ -424,18 +307,12 @@
             const frameBase64 = captureFrame();
             let mapBase64 = null;
             const gaodeKey = localStorage.getItem('GAODE_KEY');
-            const bYear = localStorage.getItem('BIRTH_YEAR');
-            const gender = localStorage.getItem('GENDER');
 
             try {
                 // 2. 后端排盘与地图
-                const reqBody = { heading: currentHeading, year: new Date().getFullYear() };
-                if (bYear) reqBody.birthYear = parseInt(bYear);
-                if (gender) reqBody.gender = gender;
-
                 const horosaRes = await fetch('/api/horosa', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(reqBody)
+                    body: JSON.stringify({ heading: currentHeading, year: new Date().getFullYear() })
                 });
                 
                 if (!horosaRes.ok) {
@@ -531,25 +408,8 @@
                         }
                     }
                 } else {
-                    let apiModel = provider === 'deepseek' ? 'deepseek-chat' : 'glm-5.3';
                     const url = provider === 'deepseek' ? 'https://api.deepseek.com/v1/chat/completions' : 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
-                    
-                    let filteredHistory = chatHistory;
-                    // DeepSeek 不支持视觉输入，剔除所有图片
-                    if (provider === 'deepseek') {
-                        filteredHistory = chatHistory.map(msg => {
-                            if (Array.isArray(msg.content)) {
-                                const textPart = msg.content.find(c => c.type === 'text');
-                                return { role: msg.role, content: textPart ? textPart.text : '' };
-                            }
-                            return msg;
-                        });
-                        if (chatHistory.length === 2) {
-                            appendLog('⚠️ 提示：您选择了 DeepSeek，该模型不支持视觉，已自动剔除图片数据进行纯理气盲算。', 'system-log');
-                        }
-                    }
-                    
-                    const payload = { model: apiModel, stream: true, messages: filteredHistory };
+                    const payload = { model: provider === 'deepseek' ? 'deepseek-chat' : 'glm-4v', stream: true, messages: chatHistory };
                     const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(payload) });
                     if (!res.ok) throw new Error("API 请求失败");
                     const reader = res.body.getReader();
@@ -602,26 +462,15 @@
         // 重新勘测逻辑
         resetBtn.onclick = () => {
             isAnalyzing = false;
-            if (!isMapMode) {
-                video.play();
-                logPanel.innerHTML = '<div class="chat-msg system-log">等待罗盘稳定... 当您停顿 1.5 秒时将自动锁定画面进行深度分析。</div>';
-            } else {
-                resetMap();
-            }
+            video.play();
             reticle.classList.remove('locked');
             resetBtn.style.display = 'none';
             chatInputArea.style.display = 'none';
+            logPanel.innerHTML = '<div class="chat-msg system-log">等待罗盘稳定... 当您停顿 1.5 秒时将自动锁定画面进行深度分析。</div>';
             lastStableHeading = null;
         };
 
         function captureFrame() {
-            if (isMapMode) {
-                // Leaflet 截图较复杂，在此模式下 LLM 主要依赖理气数据及高德静态外局图
-                // 返回一张 1x1 的纯黑占位图
-                const dummyCanvas = document.createElement('canvas');
-                dummyCanvas.width = 1; dummyCanvas.height = 1;
-                return dummyCanvas.toDataURL('image/jpeg').split(',')[1];
-            }
             canvas.width = 720; 
             canvas.height = (video.videoHeight / video.videoWidth) * 720 || 1280;
             const ctx = canvas.getContext('2d');

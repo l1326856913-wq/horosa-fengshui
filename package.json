@@ -1,0 +1,8 @@
+{
+  "name": "horosa-fengshui-api",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "mingyu-core": "^0.4.0"
+  }
+}
