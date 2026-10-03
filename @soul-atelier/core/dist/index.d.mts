@@ -1,0 +1,262 @@
+//#region src/types.d.ts
+type YinYang = "yang" | "yin";
+type FlyDirection = "forward" | "reverse";
+/** 三元龙: 0 = 地元, 1 = 天元, 2 = 人元 */
+type Yuan = 0 | 1 | 2;
+type PalaceKey = "kan" | "gen" | "zhen" | "xun" | "li" | "kun" | "dui" | "qian" | "center";
+/** One of the 24 mountains (二十四山). */
+interface Mountain {
+  /** 山字, e.g. 子 */
+  readonly name: string;
+  /** Home trigram palace, e.g. kan (坎) */
+  readonly palace: PalaceKey;
+  /** 三元龙 position within the trigram (地/天/人) */
+  readonly yuan: Yuan;
+  readonly yinYang: YinYang;
+}
+//#endregion
+//#region src/palaces.d.ts
+/** 四正 (cardinal) or 四隅 (corner); decides 二十四山 yin-yang. */
+type PalaceKind = "cardinal" | "corner";
+interface PalaceDef {
+  readonly key: PalaceKey;
+  /** Trigram name, e.g. 坎 */
+  readonly name: string;
+  readonly direction: string;
+  /** 洛书数 / 元旦盘数 (center = 5) */
+  readonly luoshu: number;
+  readonly opposite: PalaceKey;
+  readonly kind: PalaceKind;
+  /** Mountains by 元: [地元, 天元, 人元]; empty for the center */
+  readonly mountains: readonly string[];
+  /** Compass bearing in degrees (N = 0, clockwise); null for the center */
+  readonly angle: number | null;
+  /** Grid layout (compass-fixed, 南 on top): row 0 = top, col 0 = left */
+  readonly row: 0 | 1 | 2;
+  readonly col: 0 | 1 | 2;
+}
+declare const PALACES: readonly PalaceDef[];
+declare function palaceByKey(key: PalaceKey): PalaceDef;
+/** Home trigram of a star number (1-9). The center (5) has no trigram. */
+declare function palaceByLuoshu(luoshu: number): PalaceDef;
+/**
+ * The nine palace keys as a 3×3 grid rotated so `sitting` lands at the
+ * bottom-centre and its opposite at the top-centre. `sitting = "kan"` yields
+ * the compass-fixed default (南 on top). The whole compass rotates together,
+ * so every palace keeps its geographic neighbours — only orientation changes.
+ */
+declare function rotatedPalaceGrid(sitting: PalaceKey): readonly (readonly PalaceKey[])[];
+//#endregion
+//#region src/flying.d.ts
+/** Keep a star number within 1-9 (9-cycle, no zero). */
+declare function wrap1to9(n: number): number;
+/**
+ * Fly `center` through the nine palaces along the Luo Shu path.
+ *
+ * A palace with 洛书数 L sits `offset = (L - 5)` steps along the path from the
+ * center. 顺飞 (forward) adds the offset, 逆飞 (reverse) subtracts it.
+ */
+declare function flyChart(center: number, direction: FlyDirection): Record<PalaceKey, number>;
+//#endregion
+//#region src/period.d.ts
+declare function periodFromYear(year: number): number;
+/** Inclusive Gregorian year range of the 运 containing `year`. */
+declare function periodYearRange(year: number): readonly [number, number];
+//#endregion
+//#region src/mountains.d.ts
+declare function mountainByName(name: string): Mountain;
+/** Mountain at a given 元 position within a palace. */
+declare function mountainOf(key: PalaceKey, yuan: Yuan): Mountain;
+declare function allMountainNames(): readonly string[];
+//#endregion
+//#region src/wuxing.d.ts
+/** The five elements in 相生 (generation) order: each element generates the next. */
+declare const ELEMENTS: readonly ["wood", "fire", "earth", "metal", "water"];
+type Element = (typeof ELEMENTS)[number];
+declare const ELEMENT_ZH: Record<Element, string>;
+declare function elementFromZh(zh: string): Element;
+/** X such that e 生 X (wood → fire). */
+declare function generates(e: Element): Element;
+/** X such that X 生 e (fire ← wood). */
+declare function generatedBy(e: Element): Element;
+/** X such that e 克 X (wood → earth). */
+declare function controls(e: Element): Element;
+/** X such that X 克 e (earth ← wood). */
+declare function controlledBy(e: Element): Element;
+type ElementRelation = "same" | "generates" | "generatedBy" | "controls" | "controlledBy";
+/** How `a` stands to `b`: a 生 b → "generates", a 克 b → "controls", and the passives. */
+declare function elementRelation(a: Element, b: Element): ElementRelation;
+//#endregion
+//#region src/ganzhi.d.ts
+declare const STEMS: readonly ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+type Stem = (typeof STEMS)[number];
+declare const BRANCHES: readonly ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+type Branch = (typeof BRANCHES)[number];
+/** A stem-branch pair (one of the 六十甲子 when the polarities match). */
+interface GanZhi {
+  readonly stem: Stem;
+  readonly branch: Branch;
+}
+declare function stemIndex(stem: Stem): number;
+declare function branchIndex(branch: Branch): number;
+declare function stemElement(stem: Stem): Element;
+declare function branchElement(branch: Branch): Element;
+declare function stemYinYang(stem: Stem): YinYang;
+declare function branchYinYang(branch: Branch): YinYang;
+/** 六十甲子 in order: 甲子 (0) … 癸亥 (59). */
+declare const SIXTY_CYCLE: readonly GanZhi[];
+/** GanZhi at a cycle position; any integer wraps into 0-59. */
+declare function sixtyCycle(index: number): GanZhi;
+/**
+ * Position (0-59) of a pair in the 六十甲子. Throws for the 60 impossible
+ * pairs whose stem and branch polarities differ (e.g. 甲丑).
+ */
+declare function sixtyCycleIndex(gz: GanZhi): number;
+declare function ganZhiName(gz: GanZhi): string;
+/**
+ * 旬空 (空亡): the two branches missing from the pair's 旬 — the ten-pair run
+ * starting at its 甲 (甲子旬中戌亥空, 甲戌旬中申酉空, …).
+ */
+declare function voidBranches(gz: GanZhi): readonly [Branch, Branch];
+/** Parse a two-character name like "甲子". Throws on unknown characters or impossible pairs. */
+declare function ganZhiFromName(name: string): GanZhi;
+//#endregion
+//#region src/relations.d.ts
+/** 天干五合: stems five apart combine. Returns the 化气 element, or null when the pair doesn't combine. */
+declare function stemCombine(a: Stem, b: Stem): Element | null;
+/** 天干相克 between same-polarity stems (甲克戊, 庚克甲 …). Directional: does `a` control `b`? */
+declare function stemControls(a: Stem, b: Stem): boolean;
+/** 六合. Returns the transformed element, or null when the pair doesn't combine. */
+declare function branchSixCombine(a: Branch, b: Branch): Element | null;
+/** 六冲 (子午, 丑未, …): branches six apart oppose. */
+declare function branchClash(a: Branch, b: Branch): boolean;
+/** 六害. */
+declare function branchHarm(a: Branch, b: Branch): boolean;
+/** 六破. */
+declare function branchDestroy(a: Branch, b: Branch): boolean;
+/** 暗合. */
+declare function branchHiddenCombine(a: Branch, b: Branch): boolean;
+/** 相刑 pairs (子卯 and the 寅巳申 / 丑未戌 component pairs). Self-punishment is separate. */
+declare function branchPunishPair(a: Branch, b: Branch): boolean;
+/** 自刑 branches: a duplicated 辰/午/酉/亥 punishes itself. */
+declare const SELF_PUNISH: readonly Branch[];
+declare function branchSelfPunish(branch: Branch): boolean;
+declare const PUNISH_TRIPLES: readonly (readonly [Branch, Branch, Branch])[];
+/** 三刑: 寅巳申 or 丑未戌 as a complete set (any order). */
+declare function branchPunishTriple(a: Branch, b: Branch, c: Branch): boolean;
+/** 生-旺-墓 trine of a 三合局. */
+interface Trine {
+  readonly sheng: Branch;
+  readonly wang: Branch;
+  readonly mu: Branch;
+  readonly element: Element;
+}
+declare const TRINES: readonly Trine[];
+/** The 三合局 a branch belongs to (every branch sits in exactly one trine). */
+declare function trineOf(branch: Branch): Trine;
+/** 三合: a complete 生旺墓 set (any order). Returns the trine's element, or null. */
+declare function branchTriple(a: Branch, b: Branch, c: Branch): Element | null;
+/**
+ * 半合: two branches of the same trine including its 旺 (中神).
+ * 生+墓 pairs (寅戌, 亥未, 申辰, 巳丑) do not half-combine.
+ */
+declare function branchHalfCombine(a: Branch, b: Branch): Element | null;
+/** 三会方局 (寅卯辰木 …) plus the four-branch 辰戌丑未 earth meeting. */
+declare const MEETINGS: readonly {
+  readonly branches: readonly Branch[];
+  readonly element: Element;
+}[];
+/** 三会: a complete directional meeting (any order). Returns its element, or null. */
+declare function branchMeeting(branches: readonly Branch[]): Element | null;
+//#endregion
+//#region src/bagua.d.ts
+/** A single line (爻): 1 = yang (solid), 0 = yin (broken). */
+type LineValue = 0 | 1;
+/** Three lines, bottom → top. */
+type TrigramLines = readonly [LineValue, LineValue, LineValue];
+interface Trigram {
+  /** 0-7 in 先天 order: 乾兌離震巽坎艮坤. */
+  readonly index: number;
+  readonly name: string;
+  /** 天澤火雷風水山地 */
+  readonly nature: string;
+  /** ☰-☷ */
+  readonly symbol: string;
+  readonly lines: TrigramLines;
+}
+declare const TRIGRAMS: readonly Trigram[];
+declare function trigramByName(name: string): Trigram;
+declare function trigramFromLines(lines: TrigramLines): Trigram;
+/** KING_WEN[lowerIndex][upperIndex] → hexagram number (1-64, King Wen sequence). */
+declare const KING_WEN: readonly (readonly number[])[];
+interface Hexagram {
+  /** 1-64, King Wen sequence. */
+  readonly number: number;
+  readonly name: string;
+  readonly pinyin: string;
+  readonly english: string;
+  readonly lower: Trigram;
+  readonly upper: Trigram;
+  /** ䷀-䷿ (U+4DC0-U+4DFF). */
+  readonly glyph: string;
+}
+/** All 64 hexagrams; index = number - 1. */
+declare const HEXAGRAMS: readonly Hexagram[];
+declare function hexagram(number: number): Hexagram;
+declare function hexagramFromTrigrams(lower: Trigram, upper: Trigram): Hexagram;
+/** The six lines, bottom → top (lower trigram then upper). */
+declare function hexagramLines(hex: Hexagram): readonly LineValue[];
+/** 爻位 names, bottom → top: 初二三四五上. */
+declare const LINE_NAMES: readonly ["初", "二", "三", "四", "五", "上"];
+/** Flip the 变爻 at `position` (1 = bottom … 6 = top), producing the 之卦. */
+declare function flipLine(hex: Hexagram, position: number): Hexagram;
+//#endregion
+//#region src/birth.d.ts
+type Gender = "male" | "female";
+/**
+ * One client birth datum — the platform-wide input each art reads its slice of:
+ * bazi needs `gender` (大运 direction), qimen 時盤/命盤 need `hour`/`minute`,
+ * zeri's 命卦 needs the date only. Consumers fail fast on the fields they
+ * require; producers should store the datum whole.
+ */
+interface BirthDatum {
+  /** Gregorian civil date in the `tzOffsetMinutes` wall clock. */
+  readonly year: number;
+  readonly month: number;
+  readonly day: number;
+  /** null = birth time unknown. */
+  readonly hour: number | null;
+  readonly minute: number | null;
+  /** null = unspecified; arts that need it must reject null. */
+  readonly gender: Gender | null;
+  /** Offset from UTC in minutes (GMT+8 = 480). Explicit, never ambient. */
+  readonly tzOffsetMinutes: number;
+}
+//#endregion
+//#region src/hidden-stems.d.ts
+/** 藏干 of one branch: 本气 (main) always present, 中气/余气 where the branch carries them. */
+interface HiddenStems {
+  readonly main: Stem;
+  readonly middle?: Stem;
+  readonly residual?: Stem;
+}
+/** 地支藏干. Values match tyme4ts, the engine bazi-plotter renders. */
+declare const HIDDEN_STEMS: Record<Branch, HiddenStems>;
+declare function hiddenStems(branch: Branch): HiddenStems;
+/** The hidden stems as a list, 本气 first. */
+declare function hiddenStemList(branch: Branch): readonly Stem[];
+//#endregion
+//#region src/nayin.d.ts
+/** 纳音 names; each consecutive 六十甲子 pair shares one (甲子/乙丑 → 海中金 …). */
+declare const NAYIN: readonly ["海中金", "炉中火", "大林木", "路旁土", "剑锋金", "山头火", "涧下水", "城头土", "白蜡金", "杨柳木", "泉中水", "屋上土", "霹雳火", "松柏木", "长流水", "沙中金", "山下火", "平地木", "壁上土", "金箔金", "覆灯火", "天河水", "大驿土", "钗钏金", "桑柘木", "大溪水", "沙中土", "天上火", "石榴木", "大海水"];
+/** 纳音 of a 六十甲子 pair. Throws for impossible pairs (via sixtyCycleIndex). */
+declare function nayin(gz: GanZhi): string;
+//#endregion
+//#region src/changsheng.d.ts
+/** 十二长生 stages in cycle order. */
+declare const LIFE_STAGES: readonly ["长生", "沐浴", "冠带", "临官", "帝旺", "衰", "病", "死", "墓", "绝", "胎", "养"];
+type LifeStage = (typeof LIFE_STAGES)[number];
+/** 十二长生: the stem's life stage in a branch. Yang stems count forward, yin stems backward. */
+declare function lifeStage(stem: Stem, branch: Branch): LifeStage;
+//#endregion
+export { BRANCHES, type BirthDatum, type Branch, ELEMENTS, ELEMENT_ZH, type Element, type ElementRelation, type FlyDirection, type GanZhi, type Gender, HEXAGRAMS, HIDDEN_STEMS, type Hexagram, type HiddenStems, KING_WEN, LIFE_STAGES, LINE_NAMES, type LifeStage, type LineValue, MEETINGS, type Mountain, NAYIN, PALACES, PUNISH_TRIPLES, type PalaceDef, type PalaceKey, type PalaceKind, SELF_PUNISH, SIXTY_CYCLE, STEMS, type Stem, TRIGRAMS, TRINES, type Trigram, type TrigramLines, type Trine, type YinYang, type Yuan, allMountainNames, branchClash, branchDestroy, branchElement, branchHalfCombine, branchHarm, branchHiddenCombine, branchIndex, branchMeeting, branchPunishPair, branchPunishTriple, branchSelfPunish, branchSixCombine, branchTriple, branchYinYang, controlledBy, controls, elementFromZh, elementRelation, flipLine, flyChart, ganZhiFromName, ganZhiName, generatedBy, generates, hexagram, hexagramFromTrigrams, hexagramLines, hiddenStemList, hiddenStems, lifeStage, mountainByName, mountainOf, nayin, palaceByKey, palaceByLuoshu, periodFromYear, periodYearRange, rotatedPalaceGrid, sixtyCycle, sixtyCycleIndex, stemCombine, stemControls, stemElement, stemIndex, stemYinYang, trigramByName, trigramFromLines, trineOf, voidBranches, wrap1to9 };

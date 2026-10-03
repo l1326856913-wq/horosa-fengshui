@@ -1,0 +1,52 @@
+{
+  "name": "@soul-atelier/calendar",
+  "version": "0.3.0",
+  "description": "Chinese calendar engine layer: four pillars (四柱) with 立春/節 boundaries, 建除 duty, lunar labels, and hour slots — a typed interface with a tyme4ts-backed engine, returning @soul-atelier/core GanZhi values.",
+  "keywords": [
+    "chinese-calendar",
+    "four-pillars",
+    "ganzhi",
+    "lunar",
+    "solar-terms",
+    "tyme4ts",
+    "八字",
+    "农历",
+    "四柱",
+    "干支",
+    "节气"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soul-atelier/sdks.git",
+    "directory": "packages/calendar"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@soul-atelier/core": "0.3.0",
+    "tyme4ts": "1.4.4"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.14"
+  }
+}
