@@ -161,6 +161,29 @@
             background: rgba(0,0,0,0.6); border: 1px solid var(--gold); border-radius: 8px;
             color: var(--gold); font-size: 1.1rem; cursor: pointer; pointer-events: auto; z-index: 10;
         }
+
+        /* 九宫排盘可视化 */
+        .luopan-panel {
+            border: 1px solid rgba(212,175,55,0.4); border-radius: 12px; padding: 10px 12px;
+            background: rgba(212,175,55,0.04); margin: 4px 0 10px;
+        }
+        .luopan-title { color: var(--gold); font-size: 0.95rem; margin-bottom: 4px; }
+        .luopan-meta { font-size: 0.85rem; color: var(--text-main); margin-bottom: 6px; }
+        .jiugong { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+        .palace {
+            border: 1px solid rgba(212,175,55,0.25); border-radius: 8px; padding: 5px 2px;
+            text-align: center; background: rgba(0,0,0,0.35);
+        }
+        .palace .pname { color: var(--gold); font-size: 0.72rem; margin-bottom: 3px; }
+        .palace .stars { font-size: 0.88rem; display: flex; justify-content: center; gap: 7px; }
+        .palace .stars span { display: inline-block; }
+        .palace .prel { font-size: 0.62rem; color: #8a8a8a; margin-top: 2px; }
+        .star-on { color: var(--gold); font-weight: bold; }
+        .star-5 { color: #ff3b30; font-weight: bold; }
+        .luopan-combo { font-size: 0.8rem; color: #ffcc00; margin-top: 6px; }
+        .luopan-castle { font-size: 0.75rem; color: #9a9a9a; margin-top: 4px; }
+        .luopan-bazhai { font-size: 0.85rem; margin-top: 6px; }
+        .luopan-note { font-size: 0.75rem; color: #9a9a9a; margin-top: 6px; }
         
         #map-view { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1.5; }
     </style>
@@ -480,21 +503,35 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
         function normRel(d) { let x = ((d % 360) + 360) % 360; return x > 180 ? x - 360 : x; }
 
         // 引擎排盘权威面板：确定性算法结果先行展示，AI 只在其下做辅助解读
+        // 九宫格按洛书布局：巽离坤 / 震中兑 / 艮坎乾；当运星金色、五黄红色
         function enginePanel(hData) {
-            const lines = ['<b class="gold">【算法引擎排盘 · 权威依据】</b>'];
-            const x = hData.xuankong;
+            const x = hData.xuankong, b = hData.bazhai;
+            let html = '<div class="luopan-panel"><div class="luopan-title">【算法引擎排盘 · 权威依据】</div>';
             if (x) {
-                lines.push(`${x.period.label}｜${x.sitMountain}山${x.facingMountain}向｜${x.guaType}｜局型：${x.formation}`);
-                if (x.palaces) lines.push('九宫：' + x.palaces.map(p => `${p.name}(运${p.yunStar}/山${p.shanStar}/向${p.xiangStar})`).join(' '));
-                if (x.combinations && x.combinations.length) lines.push('组合：' + x.combinations.map(c => c.name).join('、'));
+                html += `<div class="luopan-meta">${x.period.label}｜${x.sitMountain}山${x.facingMountain}向｜${x.guaType}｜局型：${x.formation}</div>`;
+                if (x.palaces && x.palaces.length === 9) {
+                    const byGong = {};
+                    x.palaces.forEach(p => { byGong[p.gong] = p; });
+                    const order = [4, 9, 2, 3, 5, 7, 8, 1, 6]; // 洛书九宫排布
+                    const yun = x.period.yunStar;
+                    html += '<div class="jiugong">' + order.map(g => {
+                        const p = byGong[g];
+                        const star = (n, label) => {
+                            const cls = n === 5 ? 'star-5' : (n === yun ? 'star-on' : '');
+                            return `<span class="${cls}">${label}${n}</span>`;
+                        };
+                        return `<div class="palace"><div class="pname">${p.name}·${p.direction}</div><div class="stars">${star(p.yunStar, '运')} ${star(p.shanStar, '山')} ${star(p.xiangStar, '向')}</div><div class="prel">${p.shanXiangRelation || ''}${p.yunStarState ? ' · ' + p.yunStarState : ''}</div></div>`;
+                    }).join('') + '</div>';
+                }
+                if (x.combinations && x.combinations.length) html += `<div class="luopan-combo">组合：${x.combinations.map(c => c.name).join('、')}</div>`;
+                if (x.castleGate && x.castleGate.summary) html += `<div class="luopan-castle">${x.castleGate.summary}</div>`;
             }
-            const b = hData.bazhai;
             if (b) {
-                lines.push(`八宅：命卦${b.mingGua}（${b.mingGroup}），宅卦${b.houseGua}（${b.houseGroup}）`);
-                if (b.luckyDirections) lines.push('四吉位：' + b.luckyDirections.map(d => `${d.direction || ''}(${d.label || ''})`).join(' '));
+                html += `<div class="luopan-bazhai">八宅：命卦<b>${b.mingGua}</b>（${b.mingGroup}）· 宅卦<b>${b.houseGua}</b>（${b.houseGroup}）` +
+                    (b.luckyDirections ? `｜四吉位：${b.luckyDirections.map(d => `${d.direction || ''}(${d.label || ''})`).join(' ')}` : '') + '</div>';
             }
-            lines.push('<span style="color:#9a9a9a;font-size:0.85rem">以上为确定性算法结果；下方 AI 内容仅为辅助解读，理气以本面板为准。</span>');
-            return lines.join('<br>');
+            html += '<div class="luopan-note">以上为确定性算法结果；下方 AI 内容仅为辅助解读，理气以本面板为准。</div></div>';
+            return html;
         }
 
         function appendLog(text, type='system-log', isHtml=false) {
