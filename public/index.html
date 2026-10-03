@@ -173,6 +173,7 @@
             <div class="input-group"><label>DeepSeek API Key</label><input type="password" id="key-deepseek" placeholder="sk-..."></div>
             <div class="input-group"><label>Zhipu GLM API Key</label><input type="password" id="key-glm" placeholder="..."></div>
             <div class="input-group"><label>高德地图 Web API Key</label><input type="password" id="key-gaode" placeholder="可选，用于大峦头分析"></div>
+            <div class="input-group"><label>GLM 模型名（可选，默认 glm-5.3-flash；若报"模型不存在"可改 glm-5v-turbo / glm-4v-plus-0111）</label><input type="text" id="key-glm-model" placeholder="glm-5.3-flash"></div>
             <div class="input-group"><label>住宅建造年或起运年 (公历，玄空排盘必需)</label><input type="number" id="input-house-year" placeholder="例如：2015"></div>
             <div class="input-group"><label>出生日期 (公历，八宅必需；1-2月出生者必须准确到日，以判定立春年界)</label><input type="date" id="input-birth-date"></div>
             <div class="input-group"><label>性别 (八宅必需)</label>
@@ -254,6 +255,7 @@ F. 反谄媚：用户质疑你的结论时，基于排盘数据与图像证据�
             ['gemini', 'deepseek', 'glm', 'gaode'].forEach(k => {
                 localStorage.setItem(k.toUpperCase()+'_KEY', document.getElementById(`key-${k}`).value.trim());
             });
+            localStorage.setItem('GLM_MODEL', document.getElementById('key-glm-model').value.trim());
             localStorage.setItem('BIRTH_DATE', document.getElementById('input-birth-date').value);
             localStorage.setItem('GENDER', document.getElementById('input-gender').value);
             localStorage.setItem('HOUSE_YEAR', document.getElementById('input-house-year').value);
@@ -263,6 +265,7 @@ F. 反谄媚：用户质疑你的结论时，基于排盘数据与图像证据�
         ['gemini', 'deepseek', 'glm', 'gaode'].forEach(k => {
             document.getElementById(`key-${k}`).value = localStorage.getItem(k.toUpperCase()+'_KEY') || '';
         });
+        document.getElementById('key-glm-model').value = localStorage.getItem('GLM_MODEL') || '';
         document.getElementById('input-birth-date').value = localStorage.getItem('BIRTH_DATE') || '';
         document.getElementById('input-gender').value = localStorage.getItem('GENDER') || '';
         document.getElementById('input-house-year').value = localStorage.getItem('HOUSE_YEAR') || '';
@@ -593,7 +596,7 @@ F. 反谄媚：用户质疑你的结论时，基于排盘数据与图像证据�
                         }
                     };
                 } else {
-                    let apiModel = provider === 'deepseek' ? 'deepseek-chat' : 'glm-5.3-flash';
+                    let apiModel = provider === 'deepseek' ? 'deepseek-chat' : (localStorage.getItem('GLM_MODEL') || 'glm-5.3-flash');
                     let filteredHistory = chatHistory;
                     // DeepSeek 不支持视觉输入，剔除所有图片
                     if (provider === 'deepseek') {
@@ -607,6 +610,20 @@ F. 反谄媚：用户质疑你的结论时，基于排盘数据与图像证据�
                         if (chatHistory.length === 2) {
                             appendLog('⚠️ 提示：您选择了 DeepSeek，该模型不支持视觉，已自动剔除图片数据进行纯理气盲算。', 'system-log');
                         }
+                    }
+                    // 部分 GLM 多模态模型不支持 system role，改为并入首条用户消息
+                    if (provider === 'glm') {
+                        const sysMsg = filteredHistory.find(m => m.role === 'system');
+                        const rest = filteredHistory.filter(m => m.role !== 'system').map(m => JSON.parse(JSON.stringify(m)));
+                        if (sysMsg && rest.length) {
+                            const sysText = typeof sysMsg.content === 'string' ? sysMsg.content : '';
+                            if (Array.isArray(rest[0].content)) {
+                                rest[0].content = [{ type: 'text', text: sysText }, ...rest[0].content];
+                            } else {
+                                rest[0].content = sysText + '\n\n' + rest[0].content;
+                            }
+                        }
+                        filteredHistory = rest;
                     }
                     payload = {
                         model: apiModel,
@@ -622,7 +639,19 @@ F. 反谄媚：用户质疑你的结论时，基于排盘数据与图像证据�
                 });
                 if (!res.ok) {
                     let errMsg = `AI 请求失败 HTTP ${res.status}`;
-                    try { const j = await res.json(); if (j.error) errMsg = j.error; } catch (e) {}
+                    try {
+                        const j = await res.json();
+                        // 各家错误体形状不同：智谱 {error:{code,message}}、DeepSeek {error:{message}}、Gemini {error:{message}}，全部摊平
+                        const e = j && j.error !== undefined ? j.error : j;
+                        if (typeof e === 'string') errMsg = e;
+                        else if (e && typeof e === 'object') {
+                            const bits = [];
+                            if (e.code !== undefined) bits.push(`code=${e.code}`);
+                            if (e.message) bits.push(e.message);
+                            if (e.msg) bits.push(e.msg);
+                            errMsg = bits.length ? bits.join('：') : JSON.stringify(j).slice(0, 200);
+                        }
+                    } catch (e2) {}
                     throw new Error(errMsg);
                 }
                 const reader = res.body.getReader();
