@@ -173,6 +173,7 @@
             <div class="input-group"><label>DeepSeek API Key</label><input type="password" id="key-deepseek" placeholder="sk-..."></div>
             <div class="input-group"><label>Zhipu GLM API Key</label><input type="password" id="key-glm" placeholder="..."></div>
             <div class="input-group"><label>高德地图 Web API Key</label><input type="password" id="key-gaode" placeholder="可选，用于大峦头分析"></div>
+            <div class="input-group"><label>住宅建造年或起运年 (公历，玄空排盘必需)</label><input type="number" id="input-house-year" placeholder="例如：2015"></div>
             <div class="input-group"><label>出生年份 (公历，八宅必需)</label><input type="number" id="input-birth-year" placeholder="例如：1990"></div>
             <div class="input-group"><label>性别 (八宅必需)</label>
                 <select id="input-gender" style="width: 100%; background: #222; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px;">
@@ -196,7 +197,7 @@
                 <select class="provider-select" id="ai-provider">
                     <option value="gemini">Gemini 3.1 Pro</option>
                     <option value="deepseek">DeepSeek</option>
-                    <option value="glm">Zhipu GLM-5.3</option>
+                    <option value="glm">Zhipu GLM-5.3-Flash (多模态)</option>
                 </select>
             </div>
             <div class="mountains-display">
@@ -209,7 +210,7 @@
 
         <div class="bottom-panel">
             <div id="log-panel">
-                <div class="chat-msg system-log">等待罗盘稳定... 当您停顿 1.5 秒时将自动锁定画面进行深度分析。</div>
+                <div class="chat-msg system-log">等待罗盘稳定... 当您停顿 1.5 秒时将自动锁定画面进行深度分析。<br>⚖️ 分析结果仅供传统环境文化参考，不构成建筑、装修或投资决策依据。</div>
             </div>
             <div id="chat-input-area">
                 <input type="text" id="chat-input" placeholder="有任何疑问或需要化解？直接询问大师...">
@@ -223,9 +224,14 @@
     <script>
         const SYSTEM_INSTRUCTION = `你是一位精通中国传统堪舆学（三元玄空飞星、八宅明镜、形势峦头）的建筑环境学大师。
 系统会给你输入两张图：【图1】是手机摄像头拍下的室内实景（小峦头）；如果有【图2】，则是周边街道俯瞰地图（大峦头）。
+【铁律——防幻觉约束，必须严格遵守】
+A. 理气数据唯一来源：坐向、二十四山、运盘、山向飞星、命卦、四吉四凶位等一切理气结论，只允许引用系统提供的排盘数据，禁止自行重算或改写任何星盘数字。若排盘数据缺失某项（如无建造年导致未排玄空盘），必须明确告知用户该项无法分析，禁止凭空补全。
+B. 形煞断语必须基于图像证据：只能指出图片中实际可见的形煞（如路冲、尖角、反弓、门冲等）。凡图片中看不清或无法确认的事项（窗外是否有高压线、门后布局、楼外是否有反弓路等），必须以提问方式向用户求证，禁止臆断。
+C. 区分层级：理气（固定计算结果）与峦头（图像观察）必须分开陈述，不得混为一谈；两套体系结论不一致时按"口径不同需分述"处理，不强行调和。
+D. 化解建议须现代可行、安全、可逆（家具布局、色彩、屏风、绿植等），禁止推荐开口葫芦、符咒等无法验证真伪的商品化处置，更不得制造恐吓性断言逼迫消费。
 你的分析流程必须极其专业，并分步骤与用户互动：
 1. 观察并抛出断语：结合提供的绝对理气数据（坐向、星盘），指出图中的主要煞气或吉位。
-2. 留白与互动：在首次分析结尾，如果你看到不确定的形煞（比如看不清窗外是否有高压线，或不知道门后是什么），主动向用户提问。
+2. 留白与互动：在首次分析结尾，主动就图中不确定的形煞向用户提问。
 3. 对答如流：如果是用户的后续追问，请针对性地解答，并给出切实可行的现代美学化解方案。`;
 
         const video = document.getElementById('camera-view');
@@ -248,6 +254,7 @@
             });
             localStorage.setItem('BIRTH_YEAR', document.getElementById('input-birth-year').value);
             localStorage.setItem('GENDER', document.getElementById('input-gender').value);
+            localStorage.setItem('HOUSE_YEAR', document.getElementById('input-house-year').value);
             settingsModal.style.display = 'none';
         };
 
@@ -256,6 +263,7 @@
         });
         document.getElementById('input-birth-year').value = localStorage.getItem('BIRTH_YEAR') || '';
         document.getElementById('input-gender').value = localStorage.getItem('GENDER') || '';
+        document.getElementById('input-house-year').value = localStorage.getItem('HOUSE_YEAR') || '';
 
         let currentHeading = 0;
         let smoothedHeading = 0;
@@ -273,6 +281,7 @@
         let mapMarkerEnd = null;
         let mapPolyline = null;
         let isCompassCalibrated = false;
+        let compassHintShown = false;
 
         document.getElementById('switch-mode-btn').onclick = () => {
             isMapMode = !isMapMode;
@@ -353,8 +362,8 @@
                     currentHeading = bearing;
                     smoothedHeading = bearing;
                     headingVal.innerText = currentHeading.toFixed(1);
-                    document.getElementById('mountain-name').innerText = getMountain(currentHeading) + "山";
-                    
+                    document.getElementById('mountain-name').innerText = getMountain(currentHeading) + "山(初判)";
+
                     appendLog(`📐 地图拉线完成，计算得真北方位角：${currentHeading.toFixed(1)}°。请点击右上角切回摄像头拍摄实景！`, 'system-log');
                 }
             });
@@ -382,7 +391,20 @@
 
         function handleOrientation(event) {
             if (isAnalyzing || isMapMode || isCompassCalibrated) return; // 锁定或地图模式下不更新罗盘
-            let heading = event.webkitCompassHeading || (360 - event.alpha) || 0;
+            // iOS webkitCompassHeading 为磁北顺时针角；Android absolute 事件用 alpha 换算
+            let heading;
+            if (typeof event.webkitCompassHeading === 'number' && Number.isFinite(event.webkitCompassHeading)) {
+                heading = event.webkitCompassHeading;
+            } else if (typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
+                heading = (360 - event.alpha) % 360;
+            } else {
+                return; // 无有效罗盘数据，避免误锁 0°
+            }
+            heading = ((heading % 360) + 360) % 360;
+            if (!compassHintShown) {
+                compassHintShown = true;
+                appendLog('🧭 罗盘提示：请远离金属与电器，手持手机画"8"字校准后再测量，否则读数可偏差 10° 以上。', 'system-log');
+            }
             if (smoothedHeading === 0) smoothedHeading = heading;
             else {
                 let diff = heading - smoothedHeading;
@@ -393,7 +415,7 @@
             }
             currentHeading = smoothedHeading;
             headingVal.innerText = currentHeading.toFixed(1);
-            document.getElementById('mountain-name').innerText = getMountain(currentHeading) + "山";
+            document.getElementById('mountain-name').innerText = getMountain(currentHeading) + "山(初判)";
             
             if (lastStableHeading === null || Math.abs(currentHeading - lastStableHeading) > 3) {
                 lastStableHeading = currentHeading;
@@ -429,7 +451,16 @@
 
             try {
                 // 2. 后端排盘与地图
-                const reqBody = { heading: currentHeading, year: new Date().getFullYear() };
+                // 方位基准：地图拉线为真北；罗盘为磁北，需服务端按 GPS 坐标算磁偏角修正
+                const usedMapCalibration = !!(mapStartPoint && mapEndPoint);
+                const houseYear = localStorage.getItem('HOUSE_YEAR');
+                const reqBody = {
+                    heading: currentHeading,
+                    northReference: usedMapCalibration ? 'true' : 'magnetic',
+                    uncertainty: usedMapCalibration ? 1.5 : 3
+                };
+                if (houseYear) reqBody.year = parseInt(houseYear);
+                if (userLat != null && userLng != null) { reqBody.lat = userLat; reqBody.lng = userLng; }
                 if (bYear) reqBody.birthYear = parseInt(bYear);
                 if (gender) reqBody.gender = gender;
 
@@ -437,25 +468,32 @@
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(reqBody)
                 });
-                
+
                 if (!horosaRes.ok) {
-                    const errText = await horosaRes.text();
-                    throw new Error(`后端排盘接口抛出 HTTP ${horosaRes.status}: ${errText.substring(0, 50)}...`);
+                    let errMsg = `后端排盘接口抛出 HTTP ${horosaRes.status}`;
+                    try { const errJson = await horosaRes.json(); if (errJson.message) errMsg = errJson.message; } catch (e) {}
+                    throw new Error(errMsg);
                 }
                 const horosaData = await horosaRes.json();
-                
+
                 if (horosaData.error) throw new Error("排盘引擎报错: " + horosaData.error);
-                
-                // 兼容旧版接口与新版接口
+
                 const hData = horosaData.data ? horosaData.data : horosaData;
-                
+                const meta = horosaData.meta || {};
+
                 // 从 mingyu-core 提取结构化提示词
                 const mingyuPrompt = hData.prompt || "";
                 const evidencePrompt = hData.evidencePromptText || "";
                 const sf = hData.inputSummary?.orientationText || hData.sitting_facing || "未知坐向";
                 const tp = hData.inputSummary?.houseYear ? `宅运年份：${hData.inputSummary.houseYear}` : "未知运势";
-                
-                appendLog(`🧭 理气排盘完毕：${sf}，${tp}`);
+
+                const declNote = meta.northReference === 'magnetic' && meta.magneticDeclinationDegrees != null
+                    ? `（磁偏角 ${meta.magneticDeclinationDegrees.toFixed(1)}° 已按 GPS 修正为真北）` : "（真北）";
+                appendLog(`🧭 理气排盘完毕：${sf}，${tp}${declNote}`);
+
+                // 用排盘结果校正实时初判山名（初判未做磁偏角修正，可能与排盘不同）
+                const sitMatch = typeof sf === 'string' ? sf.match(/坐(.+?)向/) : null;
+                if (sitMatch) document.getElementById('mountain-name').innerText = sitMatch[1] + "山(排盘)";
 
                 if (userLat && userLng && gaodeKey) {
                     appendLog("🗺️ 正在获取当地地理外局地图...");
@@ -489,10 +527,10 @@
         async function callAIStream(provider, apiKey) {
             const aiDiv = appendLog(`<span class="gold">[${provider.toUpperCase()}]</span> `, 'assistant', true);
             let fullReply = "";
-            
+
             try {
+                let payload;
                 if (provider === 'gemini') {
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:streamGenerateContent?alt=sse&key=${apiKey}`;
                     // 转换 history 为 Gemini 格式
                     let geminiContents = chatHistory.filter(m => m.role !== 'system').map(m => {
                         let parts = [];
@@ -506,34 +544,15 @@
                         }
                         return { role: m.role === 'assistant' ? 'model' : 'user', parts: parts };
                     });
-                    
-                    const payload = {
-                        systemInstruction: { parts: [{ text: chatHistory[0].content }] },
-                        contents: geminiContents
-                    };
-                    
-                    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                    if (!res.ok) throw new Error("API 请求失败");
-                    const reader = res.body.getReader();
-                    const decoder = new TextDecoder("utf-8");
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        const chunk = decoder.decode(value, {stream: true});
-                        const matches = chunk.match(/"text":\s*"([^"]+)"/g);
-                        if (matches) {
-                            matches.forEach(m => {
-                                let text = JSON.parse(`{${m}}`).text;
-                                fullReply += text;
-                                aiDiv.innerHTML += text.replace(/\n/g, '<br>');
-                                logPanel.scrollTop = logPanel.scrollHeight;
-                            });
+                    payload = {
+                        model: 'gemini-3.1-pro-preview',
+                        body: {
+                            systemInstruction: { parts: [{ text: chatHistory[0].content }] },
+                            contents: geminiContents
                         }
-                    }
+                    };
                 } else {
-                    let apiModel = provider === 'deepseek' ? 'deepseek-chat' : 'glm-5.3';
-                    const url = provider === 'deepseek' ? 'https://api.deepseek.com/v1/chat/completions' : 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
-                    
+                    let apiModel = provider === 'deepseek' ? 'deepseek-chat' : 'glm-5.3-flash';
                     let filteredHistory = chatHistory;
                     // DeepSeek 不支持视觉输入，剔除所有图片
                     if (provider === 'deepseek') {
@@ -548,16 +567,51 @@
                             appendLog('⚠️ 提示：您选择了 DeepSeek，该模型不支持视觉，已自动剔除图片数据进行纯理气盲算。', 'system-log');
                         }
                     }
-                    
-                    const payload = { model: apiModel, stream: true, messages: filteredHistory };
-                    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(payload) });
-                    if (!res.ok) throw new Error("API 请求失败");
-                    const reader = res.body.getReader();
-                    const decoder = new TextDecoder("utf-8");
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        const chunk = decoder.decode(value, {stream: true});
+                    payload = {
+                        model: apiModel,
+                        body: { model: apiModel, stream: true, messages: filteredHistory }
+                    };
+                }
+
+                // 统一经后端代理转发，规避浏览器 CORS 限制
+                const res = await fetch('/api/ai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, apiKey, payload })
+                });
+                if (!res.ok) {
+                    let errMsg = `AI 请求失败 HTTP ${res.status}`;
+                    try { const j = await res.json(); if (j.error) errMsg = j.error; } catch (e) {}
+                    throw new Error(errMsg);
+                }
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let gemBuf = '';
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, {stream: true});
+                    if (provider === 'gemini') {
+                        // SSE 按行缓冲后整行 JSON 解析，避免转义引号/跨块截断导致丢字
+                        gemBuf += chunk;
+                        const lines = gemBuf.split('\n');
+                        gemBuf = lines.pop();
+                        for (const line of lines) {
+                            const raw = line.startsWith('data: ') ? line.slice(6) : line.trim();
+                            if (!raw || raw === '[DONE]') continue;
+                            try {
+                                const j = JSON.parse(raw);
+                                const parts = j.candidates?.[0]?.content?.parts || [];
+                                parts.forEach(p => {
+                                    if (p.text) {
+                                        fullReply += p.text;
+                                        aiDiv.innerHTML += p.text.replace(/\n/g, '<br>');
+                                    }
+                                });
+                                logPanel.scrollTop = logPanel.scrollHeight;
+                            } catch (e) {}
+                        }
+                    } else {
                         const lines = chunk.split('\n');
                         for (const line of lines) {
                             if (line.startsWith('data: ') && line !== 'data: [DONE]') {
@@ -604,7 +658,7 @@
             isAnalyzing = false;
             if (!isMapMode) {
                 video.play();
-                logPanel.innerHTML = '<div class="chat-msg system-log">等待罗盘稳定... 当您停顿 1.5 秒时将自动锁定画面进行深度分析。</div>';
+                logPanel.innerHTML = '<div class="chat-msg system-log">等待罗盘稳定... 当您停顿 1.5 秒时将自动锁定画面进行深度分析。<br>⚖️ 分析结果仅供传统环境文化参考，不构成建筑、装修或投资决策依据。</div>';
             } else {
                 resetMap();
             }
@@ -644,7 +698,9 @@
             } else {
                 window.addEventListener('deviceorientationabsolute', handleOrientation);
             }
-            await initCamera();
+            await initCamera().catch(err => {
+                appendLog('📷 相机启动失败：' + err.message + '。请检查浏览器权限，或在 HTTPS 环境下重试。', 'system-log', true);
+            });
             document.getElementById('auth-overlay').style.display = 'none';
         });
     </script>
