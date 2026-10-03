@@ -1004,6 +1004,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 let sseBuf = '';
                 let reasoningDiv = null;
                 let reasoningSeen = false;
+                let fallbackUsed = false;
                 // 思考区折叠 + 渲染节流：避免长思考刷屏与 O(n²) innerHTML 重渲染卡顿
                 let reasoningFull = '', reasoningBuf = '', contentBuf = '', flushTimer = null, contentStarted = false;
                 const collapseReasoning = () => {
@@ -1096,18 +1097,25 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                     throw new Error('AI 超过 45 秒无任何输出，已自动中止。请点🔄重试；若反复出现，请更换模型或服务商。');
                 }
                 if (!fullReply) {
-                    // GLM 特有：深度思考占满输出额度，只产出思考没有正文 → 自动关闭思考重试一次
+                    // GLM 特有：深度思考占满输出额度，只产出思考没有正文 → 降思考强度重试一次
                     if (provider === 'glm' && reasoningSeen && opts.reasoningEffort !== 'low') {
                         appendLog('⚠️ GLM 只输出了思考过程、未给出正文（max 级深度思考占满输出额度）。已自动将思考强度降为 low 重试一次…', 'system-log', true);
                         return callAIStream(provider, apiKey, { reasoningEffort: 'low' });
                     }
-                    const why = reasoningSeen
-                        ? '降低思考强度(low)后仍未给出正文。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。'
-                        : '未返回任何内容（可能模型无权限、不支持图片输入或思考被限流）。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。';
-                    appendLog(`⚠️ ${provider.toUpperCase()} ${why}`, 'system-log', true);
+                    if (provider === 'glm' && reasoningSeen) {
+                        // 终极兜底：多次重试仍无正文——思考流本身包含完整分析结论，直接作为解读输出
+                        appendLog('⚠️ 多次重试后 GLM 仍未生成独立正文。已将其思考内容作为解读输出（内含分析结论，仅供参考；理气以排盘面板为准）。', 'system-log', true);
+                        fullReply = reasoningFull;
+                        fallbackUsed = true;
+                        aiDiv.innerHTML += escHtml(fullReply).replace(/\n/g, '<br>'); // 思考内容并入正文展示
+                        if (reasoningDiv) { reasoningDiv.style.display = 'none'; } // 避免重复展示
+                    } else {
+                        const why = '未返回任何内容（可能模型无权限、不支持图片输入或思考被限流）。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。';
+                        appendLog(`⚠️ ${provider.toUpperCase()} ${why}`, 'system-log', true);
+                    }
                 }
                 chatHistory.push({ role: 'assistant', content: fullReply });
-                verifyAIReply(fullReply);
+                if (!fallbackUsed) verifyAIReply(fullReply); // 兜底输出的思考流含探索性表述，跳过机器核对避免误报
                 chatInputArea.style.display = 'flex';
                 setTimeout(() => chatInput.focus(), 100);
             } catch (err) {
