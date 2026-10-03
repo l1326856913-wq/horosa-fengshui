@@ -323,6 +323,8 @@ H. 室内外口径严格区分：输入会标注勘测环境（室外勘测/室�
 I. 请求补拍：若关键区域未入镜、画面模糊、背光过暗导致无法支撑判断，可在回复末尾单独一行输出【重拍请求：原因+拍摄建议】；仅在确有必要时使用，用户将据此补拍。
 J. 记忆调用：输入可能带有【历史勘测记忆】，请像复诊的老医师一样先回顾既往结论，再结合本轮排盘与图像；记忆与本轮实测冲突时，以本轮为准并指出差异。
 K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引用系统给定的坐向、运、局型、命卦等关键结论，与界面展示的排盘一致），再进入图像辅助解读；辅助解读中涉及理气的表述必须与排盘一致。
+L. 语言：正式回答全程使用简体中文（专业术语首次出现可附英文原名）；内部思考流用什么语言不影响此要求。
+K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引用系统给定的坐向、运、局型、命卦等关键结论，与界面展示的排盘一致），再进入图像辅助解读；辅助解读中涉及理气的表述必须与排盘一致。
 你的分析流程必须极其专业，并分步骤与用户互动：
 1. 观察并抛出断语：结合提供的绝对理气数据（坐向、星盘），指出图中的主要煞气或吉位。
 2. 留白与互动：在首次分析结尾，主动就图中不确定的形煞向用户提问。
@@ -846,7 +848,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 
                 const memBlock = memoryText() ? `\n${memoryText()}\n（若记忆与本轮实测冲突，以本轮为准并指出差异。）` : '';
                 const flowNote = reqBody.flowYear ? `\n【流年】${reqBody.flowYear}年紫白年盘已由引擎排出（排盘面板各宫"年星"行），分析当年引动时以该盘为准，禁止自行重算。` : '';
-                const promptText = `【勘测方式】${surveyText()}\n理气排盘数据与结构化证据：\n${evidencePrompt}\n\n详细排盘信息：\n${mingyuPrompt}${flowNote}${memBlock}\n请结合上述八方位序列${mapBase64?'及外局地图':''}进行整体空间堪舆分析，给出断语并可向我提问。`;
+                const promptText = `【勘测方式】${surveyText()}\n理气排盘数据与结构化证据：\n${evidencePrompt}\n\n详细排盘信息：\n${mingyuPrompt}${flowNote}${memBlock}\n请结合上述八方位序列${mapBase64?'及外局地图':''}进行整体空间堪舆分析，给出断语并可向我提问。请全程使用简体中文回答。`;
 
                 // 八方位定向序列：每帧标注罗盘方位（与九宫直接映射），外局图放最后
                 const frameDesc = frames.map((f, i) => `图${i + 1}：【${f.dir}】(${f.heading.toFixed(0)}°)`).join('；');
@@ -1016,7 +1018,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                                 // 思考型模型（GLM-5.x 等）先流 reasoning_content，实时灰显，避免界面"假卡住"
                                 if (delta.reasoning_content) {
                                     if (!reasoningDiv) {
-                                        reasoningDiv = appendLog('<span class="gold" style="font-size:0.85rem">【思考中】</span>', 'assistant', true);
+                                        reasoningDiv = appendLog('<span class="gold" style="font-size:0.85rem">【思考中】</span><span style="font-size:0.75rem;color:#8a8a8a">（模型内部推理，可能中英混杂，以正文为准）</span>', 'assistant', true);
                                         reasoningDiv.style.color = '#9a9a9a';
                                         reasoningDiv.style.fontSize = '0.85rem';
                                     }
