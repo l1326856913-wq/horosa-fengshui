@@ -1073,7 +1073,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             chatInputArea.style.display = 'none';
             chatHistory.push({
                 role: 'user',
-                content: [{ type: 'text', text: `【第${analysisRound}轮补拍 · 八方位定向】${surveyText()}。本轮序列：${frameDesc}${missedNote}。请结合此前各轮观察、记忆与排盘数据重新整合分析；若仍不足可再次提出【重拍请求】。` },
+                content: [{ type: 'text', text: `【第${analysisRound}轮补拍 · 八方位定向】${surveyText()}。本轮序列：${frameDesc}${missedNote}。请结合此前各轮观察、记忆与排盘数据重新整合分析；若仍不足可再次提出【重拍请求】。请全程使用简体中文回答。` },
                     ...frames.map(f => ({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${f.b64}` } }))]
             });
             appendLog('🔮 补拍整合分析中…', 'system-log');
