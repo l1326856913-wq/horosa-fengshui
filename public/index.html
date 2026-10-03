@@ -576,6 +576,11 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             reticle.classList.add('locked');
             resetBtn.style.display = 'flex';
             document.getElementById('status-dot').className = 'status-indicator analyzing';
+            // 补拍场景下视频处于暂停态，必须先恢复播放，否则会重复采集冻结帧
+            if (video.paused) {
+                await video.play().catch(() => {});
+                await new Promise(r => setTimeout(r, 300)); // 等待画面稳定
+            }
             const mySeq = ++captureSeq;
             const N_FRAMES = 6, CAPTURE_INTERVAL = 600;
             appendLog('📹 空间序列采集中：请缓慢向左再向右平移手机，保持画面连续…');
@@ -893,6 +898,8 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
 
         // 按大师要求补拍：保留对话与记忆，采集新一轮序列继续分析
         retakeBtn.onclick = async () => {
+            if (isMapMode) { appendLog('📷 补拍需实景画面：请先点击右上角切换回摄像头模式。', 'system-log', true); return; }
+            if (analysisRound >= 3) { appendLog('已达单次勘测最大采集轮数（3轮），避免图像历史撑爆请求。请点🔄开始新勘测——历史结论已自动存入勘测记忆。', 'system-log', true); return; }
             const provider = document.getElementById('ai-provider').value;
             const apiKey = localStorage.getItem(provider.toUpperCase() + '_KEY');
             if (!apiKey) { appendLog('请先点击右上角 ⚙️ 配置 API Key', 'system-log', true); return; }
