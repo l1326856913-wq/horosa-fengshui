@@ -1360,17 +1360,47 @@ O. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
             }
         }
 
-        function handleOrientation(event) {
-            if ((isAnalyzing && !isCapturing) || isMapMode || isCompassCalibrated) return; // 锁定或地图模式下不更新罗盘（采集阶段除外）
-            // iOS webkitCompassHeading 为磁北顺时针角；Android absolute 事件用 alpha 换算
-            let heading;
+        // 罗盘数据源状态（复检修复 2026-10-04）：
+        //   'absolute' —— deviceorientationabsolute 事件（真北航向），Android Chrome 等支持
+        //   'relative' —— deviceorientation 事件（webkitCompassHeading=磁北 / alpha=相对北）
+        // 此前只监听 absolute 事件：微信 X5 内核、多数国产安卓浏览器与旧 WebView 不派发它，
+        // 事件永不触发且无任何降级与提示，表现为"罗盘不调用"。
+        let compassSource = null;      // 实际生效的数据源（送后端 northReference 的口径依据）
+        let compassDataSeen = false;   // 是否收到过任意有效罗盘帧（3 秒诊断用）
+        let compassActivated = false;  // 首帧日志只打一次
+        let compassListenersAttached = false;
+
+        // 从事件对象提取航向：iOS 用 webkitCompassHeading（磁北顺时针角），
+        // Android 用 alpha（逆时针角，须换算为顺时针航向）；absolute 事件自带真北标记。
+        function readHeading(event) {
             if (typeof event.webkitCompassHeading === 'number' && Number.isFinite(event.webkitCompassHeading)) {
-                heading = event.webkitCompassHeading;
-            } else if (typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
-                heading = (360 - event.alpha) % 360;
-            } else {
-                return; // 无有效罗盘数据，避免误锁 0°
+                return { heading: event.webkitCompassHeading, absolute: false };
             }
+            if (typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
+                return { heading: (360 - event.alpha) % 360, absolute: event.absolute === true };
+            }
+            return null;
+        }
+
+        function handleOrientation(event, source) {
+            if ((isAnalyzing && !isCapturing) || isMapMode || isCompassCalibrated) return; // 锁定或地图模式下不更新罗盘（采集阶段除外）
+            const got = readHeading(event);
+            if (!got) return; // 无有效罗盘数据（桌面端常见），保持上一次读数，避免误锁 0°
+            compassDataSeen = true;
+            // 数据源锁定：真北源（absolute）一旦确立即优先，忽略 relative 事件的交替噪声；
+            // relative 只在尚无真北源时生效（iOS webkitCompassHeading 亦落入此分支，磁北口径）
+            if (source === 'absolute' || got.absolute) {
+                compassSource = 'absolute';
+            } else if (compassSource === 'absolute') {
+                return;
+            } else {
+                compassSource = 'relative';
+            }
+            if (!compassActivated) {
+                compassActivated = true;
+                appendLog(`🧭 罗盘已激活（数据源：${compassSource === 'absolute' ? '真北 deviceorientationabsolute，排盘无需磁偏角修正' : '磁北 compassHeading/relative，排盘将按 GPS 磁偏角修正'}）。`, 'system-log');
+            }
+            let heading = got.heading;
             heading = ((heading % 360) + 360) % 360;
             if (!compassHintShown) {
                 compassHintShown = true;
@@ -1508,10 +1538,16 @@ O. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                 // 【P0-3】室内模式的坐向与基准口径一律沿用室外已确认值，避免用环拍朝向排盘
                 const usedMapCalibration = isIndoor ? (siting.northReference === 'true') : !!(mapStartPoint && mapEndPoint);
                 const houseYear = localStorage.getItem('HOUSE_YEAR');
+                // 传感器口径纪律（复检修复 2026-10-04）：northReference 必须与罗盘数据源实际口径一致。
+                // deviceorientationabsolute 的 alpha 是真北航向 → 送 'true'（后端不再做磁偏角修正）；
+                // webkitCompassHeading / 相对 alpha 是磁北 → 送 'magnetic'（后端按 GPS 磁偏角修正）。
+                // 此前罗盘路径一律送 'magnetic'：安卓真北源会被二次修正，中国境内系统性偏差
+                // 2°~10°（约等于一个磁偏角），足以错判一整山、整盘作废。
+                const compassRef = compassSource === 'absolute' ? 'true' : 'magnetic';
                 const reqBody = {
                     // 【P0-1 修复】使用冻结的基准角，而非被采集改写后的 currentHeading
                     heading: baseHeading,
-                    northReference: usedMapCalibration ? 'true' : 'magnetic',
+                    northReference: usedMapCalibration ? 'true' : compassRef,
                     uncertainty: usedMapCalibration ? mapUncertaintyDeg : 3
                 };
                 if (isIndoor && Number.isFinite(siting.uncertaintyDegrees)) reqBody.uncertainty = siting.uncertaintyDegrees;
@@ -2056,6 +2092,9 @@ O. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
             // 【P0-3 修复】重置意味着"重新定向"，必须同时作废已落盘的室内坐向，
             // 否则下次进入室内模式会复用一个已被用户主动废弃的旧坐向
             clearSiting();
+            // 【复检修复】地图定向作废后罗盘必须恢复工作：
+            // isCompassCalibrated 此前从不复位，用户重置后罗盘永久停更（"罗盘不调用"诱因之一）
+            isCompassCalibrated = false;
             if (!isMapMode) {
                 video.play();
                 logPanel.innerHTML = '<div class="chat-msg system-log">等待罗盘稳定... 当您停顿 1.5 秒时将自动锁定画面进行深度分析。<br>⚖️ 分析结果仅供传统环境文化参考，不构成建筑、装修或投资决策依据。</div>';
@@ -2152,13 +2191,38 @@ O. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
             if (userLat == null || userLng == null) {
                 if (!isMapMode) document.getElementById('switch-mode-btn').click();
             }
+            // 罗盘监听注册（复检修复 2026-10-04）：
+            // 双事件监听 + 数据源探测。此前非 iOS 设备只监听 deviceorientationabsolute，
+            // 微信 X5 内核/多数国产浏览器不派发该事件且无降级无提示——罗盘静默失效。
+            // iOS 13+ 的 requestPermission 失败也不再静默，明确告知并降级。
+            function attachCompassListeners() {
+                if (compassListenersAttached) return;
+                compassListenersAttached = true;
+                window.addEventListener('deviceorientationabsolute', e => handleOrientation(e, 'absolute'));
+                window.addEventListener('deviceorientation', e => handleOrientation(e, 'relative'));
+                // 3 秒无任何有效罗盘数据 → 诊断 + 自动降级地图拉线（桌面/无磁力计设备的合理路径）
+                setTimeout(() => {
+                    if (!compassDataSeen && !isMapMode) {
+                        appendLog('⚠️ 3 秒内未收到罗盘数据（设备无磁力计、浏览器不支持或页面非 HTTPS）。已自动切换到地图拉线定向模式（真北，无需罗盘）。', 'system-log', true);
+                        document.getElementById('switch-mode-btn').click();
+                    }
+                }, 3000);
+            }
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 try {
-                    if (await DeviceOrientationEvent.requestPermission() === 'granted') 
-                        window.addEventListener('deviceorientation', handleOrientation);
-                } catch (e) {}
+                    const perm = await DeviceOrientationEvent.requestPermission();
+                    if (perm === 'granted') {
+                        attachCompassListeners();
+                    } else {
+                        appendLog(`⚠️ 罗盘权限未授权（${perm}）。已自动切换到地图拉线定向模式（真北，无需磁偏角修正）。`, 'system-log', true);
+                        if (!isMapMode) document.getElementById('switch-mode-btn').click();
+                    }
+                } catch (e) {
+                    appendLog(`⚠️ 罗盘权限请求失败（${e.message}）。已自动切换到地图拉线定向模式。`, 'system-log', true);
+                    if (!isMapMode) document.getElementById('switch-mode-btn').click();
+                }
             } else {
-                window.addEventListener('deviceorientationabsolute', handleOrientation);
+                attachCompassListeners();
             }
             await initCamera().catch(err => {
                 appendLog('📷 相机启动失败：' + err.message + '。请检查浏览器权限，或在 HTTPS 环境下重试。', 'system-log', true);

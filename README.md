@@ -301,6 +301,33 @@ node verify-regulation.mjs   # 18 项：引擎实测 7 + 前端消费 10 + 回�
 
 ---
 
+## 第七阶段：罗盘链路修复（2026-10-04，"罗盘不调用"）
+
+### 根因（复检定位）
+
+1. **只监听 `deviceorientationabsolute` 且无降级**：微信 X5 内核、多数国产安卓浏览器与旧 WebView 不派发该事件，罗盘事件永不触发、无任何提示——"罗盘不调用"的直接根因。
+2. **iOS 权限失败静默**：`DeviceOrientationEvent.requestPermission()` 拒绝或异常时空 catch，用户不知道罗盘为何不动。
+3. **传感器口径缺陷（专业准确性级）**：`deviceorientationabsolute` 的 `alpha` 是**真北**航向，前端却一律按**磁北**送后端再做磁偏角修正——安卓真北源被二次修正，中国境内系统性偏差 2°~10°（约一个磁偏角），足以错判一整山、整盘作废。
+4. **`isCompassCalibrated` 从不复位**：地图定向作废后罗盘永久停更。
+
+### 修复
+
+- **双事件监听 + 数据源探测**：absolute（真北）与 relative（磁北）同时注册，真北源一旦有效即锁定并忽略 relative 噪声；X5/国产浏览器自动落入 relative 兜底，罗盘恢复可用。
+- **口径纪律**：数据源为真北（absolute）时 `northReference` 送 `'true'`（后端不再二次修正）；磁北源送 `'magnetic'`（后端按 GPS 磁偏角修正）。排盘后落盘的坐向记录自动继承该口径，室内复用一致。
+- **诊断与降级**：iOS 权限拒绝/异常红字提示并自动切地图拉线；3 秒内无任何有效罗盘帧（无磁力计/不支持/非 HTTPS）亦自动降级并说明原因。
+- **首帧激活日志**：罗盘激活时标明数据源与口径（"真北 deviceorientationabsolute，排盘无需磁偏角修正" / "磁北 compassHeading，排盘将按 GPS 磁偏角修正"）。
+- **重置恢复**：`resetBtn` 重置 `isCompassCalibrated`，重新勘测后罗盘可用。
+
+### 验收
+
+```
+node verify-compass.mjs   # 18 项：双监听 6 + iOS 权限 3 + 诊断 3 + 口径纪律 4 + 复位 1 + 回归 1
+```
+
+> 注：Windows 下验收脚本内嵌的子进程回归偶发 EBUSY（杀软扫描瞬时占用），脚本会自动降级为手动确认提示；`node test-engine.mjs` 可独立运行验证（23/23）。
+
+---
+
 ## 已知风险与维护清单
 
 **数据层**
