@@ -208,6 +208,20 @@
             font-size: 0.74rem; color: #8fb8c8; margin: 0 0 6px;
             font-family: 'Cascadia Code', Consolas, monospace;
         }
+        /* 【第三阶段第 2 项】星性依据标记：悬停显示该条宜忌的流派出处 */
+        .star-src {
+            font-size: 0.68rem; color: #8a8a8a; cursor: help; margin-left: 4px;
+            border-bottom: 1px dotted rgba(138, 138, 138, 0.6); user-select: none;
+        }
+        .star-src:hover { color: #d4af37; border-bottom-color: #d4af37; }
+        /* 城门诀推导明细（第三阶段第 4 项） */
+        .luopan-castle-detail {
+            font-size: 0.74rem; line-height: 1.55; margin-top: 5px; padding: 6px 9px;
+            background: rgba(212, 175, 55, 0.06); border: 1px solid rgba(212, 175, 55, 0.22);
+            border-radius: 6px; color: #cfc6a4;
+        }
+        .luopan-castle-detail .cg-row { margin: 2px 0; }
+        .luopan-castle-detail .cg-row b { color: #d4af37; }
 
         .advice-panel, .remind-panel {
             border: 1px solid rgba(212,175,55,0.4); border-radius: 12px; padding: 10px 12px;
@@ -250,7 +264,14 @@
             <div class="input-group"><label>DeepSeek API Key</label><input type="password" id="key-deepseek" placeholder="sk-..."></div>
             <div class="input-group"><label>Zhipu GLM API Key</label><input type="password" id="key-glm" placeholder="..."></div>
             <div class="input-group"><label>高德地图 Web API Key</label><input type="password" id="key-gaode" placeholder="可选，用于大峦头分析"></div>
-            <div class="input-group"><label>流年（紫白年盘，可选，默认当前年）</label><input type="number" id="input-flow-year" placeholder="例如：2026"></div>
+            <div class="input-group"><label>流年（紫白年盘，可选，默认当前年）</label>
+                <input type="number" id="input-flow-year" placeholder="例如：2026">
+                <div style="display:flex;gap:8px;margin-top:6px;">
+                    <input type="number" id="input-flow-month" min="1" max="12" placeholder="参照月 1-12" style="flex:1;">
+                    <input type="number" id="input-flow-day" min="1" max="31" placeholder="参照日 1-31" style="flex:1;">
+                </div>
+                <div style="font-size:0.72rem;color:#888;margin-top:4px;">流年紫白与<b>建造运界同以立春换年</b>。若所填为当年且在 1/1~立春之间（约 34 天），不填参照月日会错一星；填「今天」即可对齐。</div>
+            </div>
             <div class="input-group"><label>解读风格</label>
                 <select id="input-answer-style" style="width:100%;background:#222;border:1px solid #444;color:#fff;padding:8px;border-radius:8px;">
                     <option value="plain">白话模式（推荐，零基础也能听懂）</option>
@@ -388,6 +409,8 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
             localStorage.setItem('GLM_MODEL', document.getElementById('key-glm-model').value.trim());
             localStorage.setItem('ANSWER_STYLE', document.getElementById('input-answer-style').value);
             localStorage.setItem('FLOW_YEAR', document.getElementById('input-flow-year').value);
+            localStorage.setItem('FLOW_MONTH', document.getElementById('input-flow-month').value);
+            localStorage.setItem('FLOW_DAY', document.getElementById('input-flow-day').value);
             localStorage.setItem('BIRTH_DATE', document.getElementById('input-birth-date').value);
             localStorage.setItem('GENDER', document.getElementById('input-gender').value);
             localStorage.setItem('HOUSE_YEAR', document.getElementById('input-house-year').value);
@@ -402,6 +425,8 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
         document.getElementById('key-glm-model').value = localStorage.getItem('GLM_MODEL') || '';
         document.getElementById('input-answer-style').value = localStorage.getItem('ANSWER_STYLE') || 'plain';
         document.getElementById('input-flow-year').value = localStorage.getItem('FLOW_YEAR') || '';
+        document.getElementById('input-flow-month').value = localStorage.getItem('FLOW_MONTH') || '';
+        document.getElementById('input-flow-day').value = localStorage.getItem('FLOW_DAY') || '';
         document.getElementById('input-birth-date').value = localStorage.getItem('BIRTH_DATE') || '';
         document.getElementById('input-gender').value = localStorage.getItem('GENDER') || '';
         document.getElementById('input-house-year').value = localStorage.getItem('HOUSE_YEAR') || '';
@@ -693,8 +718,16 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                 html += `<div class="luopan-fix">ℹ️ ${escHtml(meta.periodBoundaryNote)}</div>`;
             }
 
+            // ---- 流年口径（第三阶段第 1 项）：与运界同为立春换年标准 ----
+            if (meta.flowYearAdjustedByLichun) {
+                html += `<div class="luopan-fix">🔄 <b>流年盘已按立春修正</b>：所填流年 ${meta.requestedFlowYear} 年的参照月日早于该年立春，`
+                    + `年紫白已回退至上一干支年，与上方运界口径保持一致。</div>`;
+            } else if (meta.flowYearBoundaryNote) {
+                html += `<div class="luopan-fix">ℹ️ ${escHtml(meta.flowYearBoundaryNote)}</div>`;
+            }
+
             if (x) {
-                html += `<div class="luopan-meta">${x.period.label}｜${x.sitMountain}山${x.facingMountain}向｜${x.guaType}｜局型：${x.formation}${yp ? `｜流年${yp.year}·${yp.starName}入中` : ''}</div>`;
+                html += `<div class="luopan-meta">${escHtml(String(x.period.label))}｜${escHtml(String(x.sitMountain))}山${escHtml(String(x.facingMountain))}向｜${escHtml(String(x.guaType))}｜局型：${escHtml(String(x.formation))}${yp ? `｜流年${escHtml(String(yp.year))}·${escHtml(String(yp.starName))}入中` : ''}</div>`;
                 if (x.palaces && x.palaces.length === 9) {
                     const byGong = {};
                     x.palaces.forEach(p => { byGong[p.gong] = p; });
@@ -707,15 +740,38 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                             return `<span class="${cls}">${label}${n}</span>`;
                         };
                         const yearStar = yp ? `年星${yp.plate[p.gong - 1]}` : '';
-                        return `<div class="palace"><div class="pname">${p.name}·${p.direction}</div><div class="stars">${star(p.yunStar, '运')} ${star(p.shanStar, '山')} ${star(p.xiangStar, '向')}</div><div class="prel">${yearStar ? yearStar + ' · ' : ''}${p.shanXiangRelation || ''}${p.yunStarState ? ' · ' + p.yunStarState : ''}</div></div>`;
+                        // 【第三阶段第 2 项】九宫格字段同样走 escHtml：引擎字段若含尖括号等字符，
+                        // 直接插入 innerHTML 会破坏 DOM 结构。所有引擎字符串统一在此收敛。
+                        return `<div class="palace"><div class="pname">${escHtml(String(p.name))}·${escHtml(String(p.direction))}</div><div class="stars">${star(p.yunStar, '运')} ${star(p.shanStar, '山')} ${star(p.xiangStar, '向')}</div><div class="prel">${yearStar ? yearStar + ' · ' : ''}${escHtml(String(p.shanXiangRelation || ''))}${p.yunStarState ? ' · ' + escHtml(String(p.yunStarState)) : ''}</div></div>`;
                     }).join('') + '</div>';
                 }
-                if (x.combinations && x.combinations.length) html += `<div class="luopan-combo">组合：${x.combinations.map(c => c.name).join('、')}</div>`;
-                if (x.castleGate && x.castleGate.summary) html += `<div class="luopan-castle">${x.castleGate.summary}</div>`;
+                if (x.combinations && x.combinations.length) html += `<div class="luopan-combo">组合：${x.combinations.map(c => escHtml(String(c.name))).join('、')}</div>`;
+                // 【第三阶段第 4 项】城门诀展开推导：
+                // 此前只显示 summary 一句结论，把引擎给出的完整推导链（向首两旁同元龙取山 →
+                // 运星顺逆飞 → 飞临星与当运旺星比对 → 可用与否）全部丢弃，
+                // 用户无法判断"此盘无城门"是引擎算错还是本身格局如此。
+                const cg = x.castleGate;
+                if (cg) {
+                    if (cg.summary) html += `<div class="luopan-castle">${escHtml(cg.summary)}</div>`;
+                    if (Array.isArray(cg.candidates) && cg.candidates.length) {
+                        html += '<div class="luopan-castle-detail">城门诀推导（向首两旁同元龙取山）：';
+                        cg.candidates.forEach(c => {
+                            const starNameOf = n => `${n}`;
+                            html += `<div class="cg-row">· <b>${escHtml(String(c.role))}</b> ${escHtml(String(c.gongName))}方`
+                                + `（${escHtml(String(c.mountain))}山）｜运星 ${c.yunStar} ${escHtml(String(c.flyDirection))}，`
+                                + `飞临 ${starNameOf(c.arrivalStar)}｜<b>${escHtml(String(c.status))}</b></div>`;
+                        });
+                        html += `<div class="cg-row" style="margin-top:4px;color:#a89a6a;">`
+                            + (cg.hasUsableGate
+                                ? '本盘有可用城门，仍以坐向纳气为主，不可舍正位而强行取城门。'
+                                : '两旁城门均未得旺星飞临，属格局本身如此，非排盘错误。')
+                            + '</div></div>';
+                    }
+                }
             }
             if (b) {
-                html += `<div class="luopan-bazhai">八宅：命卦<b>${b.mingGua}</b>（${b.mingGroup}）· 宅卦<b>${b.houseGua}</b>（${b.houseGroup}）` +
-                    (b.luckyDirections ? `｜四吉位：${b.luckyDirections.map(d => `${d.direction || ''}(${d.label || ''})`).join(' ')}` : '') + '</div>';
+                html += `<div class="luopan-bazhai">八宅：命卦<b>${escHtml(String(b.mingGua))}</b>（${escHtml(String(b.mingGroup))}）· 宅卦<b>${escHtml(String(b.houseGua))}</b>（${escHtml(String(b.houseGroup))}）` +
+                    (b.luckyDirections ? `｜四吉位：${b.luckyDirections.map(d => `${escHtml(String(d.direction || ''))}(${escHtml(String(d.label || ''))})`).join(' ')}` : '') + '</div>';
             }
             // 【第二阶段第 9 项】命卦口径声明：
             // 引擎用「年份除九取余 + 11/4」，与民间「数字和法」结果半数不同。
@@ -728,20 +784,64 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
             return html;
         }
 
-        // 通行星性口径（确定性规则表，非AI生成）：由引擎盘面推导方位宜忌
-        // 注意：宜忌结论中的五行生克方向须与引擎 FLYING_STAR_WUXING 保持一致。
-        // 例如山星6金对向星9火，引擎判为「山星克出向星」（金克火，火为受制一方），
-        // 因此宜忌表述必须是「忌火」而理由是「金克火」，不可写成「火克金」。
+        // 通行星性口径（本地常量表，非引擎输出、非AI生成）：为引擎盘面补充方位宜忌文案。
+        //
+        // 【专业性声明 · 第三阶段第 2 项】
+        // 1. 本表是「理气之外的星性表达层」，与「理气唯一来源是引擎」并不冲突：
+        //    九宫的星数、宫位、生克关系全部取自引擎；本表只负责把星数翻译成一句白话建议。
+        // 2. 但必须诚实标注来源——它既非引擎输出，也非某一部典籍的原文，
+        //    而是各家通行口径的归纳，故标注为「通行星性口径归纳」，不再声称「引擎推导」。
+        // 3. source 字段标注该条的主要依据；依据弱或流派分歧大的条目已加「口径存疑」，
+        //    供使用者自行判断，不冒充定论。
+        // 4. 五行生克方向必须与引擎 FLYING_STAR_WUXING 一致：
+        //    引擎判「山星6金克向星9火」为克出，故表述是「忌火」而理由为「金克火」，不可写成「火克金」。
         const STAR_RULES = {
-            1: { name: '一白贪狼', tag: '吉', yi: '利人缘官贵，宜整洁明亮', buyi: '' },
-            2: { name: '二黑病符', tag: '病符', yi: '', buyi: '忌久坐久卧，宜静不宜动' },
-            3: { name: '三碧蚩尤', tag: '是非', yi: '', buyi: '忌口舌争执与冲动决策' },
-            4: { name: '四绿文昌', tag: '吉', yi: '利学业文书，宜书房绿植', buyi: '' },
-            5: { name: '五黄廉贞', tag: '大煞', yi: '宜静不宜动', buyi: '大忌动土装修、长期坐卧' },
-            6: { name: '六白武曲', tag: '吉', yi: '利事业权威，宜金属饰品', buyi: '忌红色火性物品（金克火，火为受制之方）' },
-            7: { name: '七赤破军', tag: '退气', yi: '', buyi: '防口舌盗失，宜静不宜动' },
-            8: { name: '八白左辅', tag: '吉', yi: '利财运，宜常活动使用', buyi: '' },
-            9: { name: '九紫右弼', tag: '吉', yi: '主喜庆，宜明亮常使用', buyi: '忌污秽杂物堆压' },
+            1: {
+                name: '一白贪狼', tag: '吉', wuxing: '水',
+                yi: '利人缘官贵，宜整洁明亮', buyi: '',
+                source: '《协纪辨方书》九星释义：一白为贪狼，主科名官贵。',
+            },
+            2: {
+                name: '二黑病符', tag: '病符', wuxing: '土',
+                yi: '', buyi: '忌久坐久卧，宜静不宜动',
+                source: '《协纪辨方书》二黑为病符，主疾病。静宜动忌为各派共同表述。',
+            },
+            3: {
+                name: '三碧蚩尤', tag: '是非', wuxing: '木',
+                yi: '', buyi: '忌口舌争执与冲动决策',
+                source: '《协纪辨方书》三碧为蚩尤，主口舌是非、盗贼。',
+            },
+            4: {
+                name: '四绿文昌', tag: '吉', wuxing: '木',
+                yi: '利学业文书，宜书房绿植', buyi: '',
+                source: '《协纪辨方书》四绿为文昌，主功名学业。',
+            },
+            5: {
+                name: '五黄廉贞', tag: '大煞', wuxing: '土',
+                yi: '宜静不宜动', buyi: '大忌动土装修、长期坐卧',
+                source: '各家共识：五黄为正关煞，主凶。忌动土为通行铁则（动土易触动伏煞）。',
+            },
+            6: {
+                name: '六白武曲', tag: '吉', wuxing: '金',
+                yi: '利事业权威，宜金属饰品',
+                buyi: '忌红色火性物品（金克火，火为受制之方）',
+                source: '《协纪辨方书》六白为武曲，主官贵。忌火为引擎生克推导（6金克9火，火为受制方）。',
+            },
+            7: {
+                name: '七赤破军', tag: '退气', wuxing: '金',
+                yi: '', buyi: '防口舌盗失，宜静不宜动',
+                source: '《协纪辨方书》七赤为破军，主口舌、盗贼。退气为九运当运星对照得出。',
+            },
+            8: {
+                name: '八白左辅', tag: '吉', wuxing: '土',
+                yi: '利财运，宜常活动使用', buyi: '',
+                source: '《协纪辨方书》八白为左辅，主财禄。八白土性，沉静则滞、动则旺。',
+            },
+            9: {
+                name: '九紫右弼', tag: '吉', wuxing: '火',
+                yi: '主喜庆，宜明亮常使用', buyi: '忌污秽杂物堆压',
+                source: '《协纪辨方书》九紫为右弼，主喜庆。火性宜明不宜晦。',
+            },
         };
 
         // 引擎应对建议（r.advice 为引擎确定性输出）
@@ -750,27 +850,38 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
             return `<div class="advice-panel"><div class="luopan-title">【引擎应对建议】</div>${a.map(x => `<div>· ${x}</div>`).join('') || '<div>暂无</div>'}<div class="luopan-note">来源：mingyu-core 引擎确定性输出，非AI生成。</div></div>`;
         }
 
-        // 方位宜忌提醒：向星管财禄纳气、山星管健康人丁；由引擎盘面 + 通行星性口径推导
+        // 方位宜忌提醒：九宫星数与生克关系取自引擎盘面；九星宜忌文案取自本地通行星性口径表。
         function remindersPanel(hData) {
             const x = hData.xuankong, b = hData.bazhai;
-            let html = '<div class="remind-panel"><div class="luopan-title">【方位宜忌提醒】</div><div class="luopan-note">依据引擎盘面与通行星性口径推导（确定性规则，非AI生成）；向星管财禄纳气、山星管健康人丁。</div>';
+            let html = '<div class="remind-panel"><div class="luopan-title">【方位宜忌提醒】</div>'
+                + '<div class="luopan-note">九宫星数、山向生克与四吉四凶位来自 mingyu-core 引擎输出；'
+                + '九星宜忌文案为本地「通行星性口径归纳表」（非引擎输出、非AI生成），各家流派存在差异，仅供参考。</div>'
+                + '<div class="luopan-note">向星管财禄纳气、山星管健康人丁。</div>';
             if (x && x.palaces) {
                 const yun = x.period.yunStar;
+                const srcShown = new Set();
                 html += x.palaces.map(p => {
                     const mk = (star, label) => {
                         const r = STAR_RULES[star];
                         const hot = star === yun ? '<span class="star-on">（当运）</span>' : '';
-                        let seg = `${label}星${star}·${r.name}【${r.tag}】${hot}`;
-                        if (r.yi) seg += ` 宜：${r.yi}`;
-                        if (r.buyi) seg += ` 忌：${r.buyi}`;
+                        // 【第三阶段第 2 项】全部字段走 escHtml：星性文案与引擎字段一并转义，
+                        // 避免任何上游字符串（含 AI 相关回落内容）进入 innerHTML 时形成注入面。
+                        let seg = `${label}星${star}·${escHtml(String(r.name))}【${escHtml(String(r.tag))}】${hot}`;
+                        if (r.yi) seg += ` 宜：${escHtml(String(r.yi))}`;
+                        if (r.buyi) seg += ` 忌：${escHtml(String(r.buyi))}`;
+                        // 每条星性首次出现时附上依据，悬停可见
+                        if (r.source && !srcShown.has(star)) {
+                            srcShown.add(star);
+                            seg += `<span class="star-src" title="${escHtml(String(r.source))}">〔依据〕</span>`;
+                        }
                         return `<div class="remind-star">${seg}</div>`;
                     };
-                    return `<div class="remind-item"><div class="remind-gong">${p.name}（${p.direction}）</div>${mk(p.xiangStar, '向')}${mk(p.shanStar, '山')}</div>`;
+                    return `<div class="remind-item"><div class="remind-gong">${escHtml(String(p.name))}（${escHtml(String(p.direction))}）</div>${mk(p.xiangStar, '向')}${mk(p.shanStar, '山')}</div>`;
                 }).join('');
             }
             if (b) {
-                const yi = (b.luckyDirections || []).map(d => `${d.direction}（${d.label}）`).join('、');
-                const bu = (b.unluckyDirections || []).map(d => `${d.direction}（${d.label}）`).join('、');
+                const yi = (b.luckyDirections || []).map(d => `${escHtml(String(d.direction))}（${escHtml(String(d.label))}）`).join('、');
+                const bu = (b.unluckyDirections || []).map(d => `${escHtml(String(d.direction))}（${escHtml(String(d.label))}）`).join('、');
                 if (yi) html += `<div class="remind-bazhai">八宅吉位：大门/卧室/书房宜优先设于 ${yi}</div>`;
                 if (bu) html += `<div class="remind-bazhai">八宅凶位：大门/卧室/厨房不宜设于 ${bu}</div>`;
             }
@@ -986,6 +1097,11 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                 if (bYear) reqBody.birthYear = parseInt(bYear);
                 const flowYear = localStorage.getItem('FLOW_YEAR');
                 reqBody.flowYear = flowYear ? parseInt(flowYear) : new Date().getFullYear();
+                // 【第三阶段第 1 项】流年立春修正所需参照月日（缺省时后端会给出边界告警）
+                const fMonth = localStorage.getItem('FLOW_MONTH');
+                const fDay = localStorage.getItem('FLOW_DAY');
+                if (fMonth) reqBody.flowMonth = parseInt(fMonth, 10);
+                if (fDay) reqBody.flowDay = parseInt(fDay, 10);
                 const bDate = localStorage.getItem('BIRTH_DATE');
                 if (bDate) {
                     const [by, bm, bd] = bDate.split('-').map(Number);
@@ -1097,8 +1213,8 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                 // 【第二阶段第 13 项】可信度门控：思考流兜底 / 超时 / 空回复一律不写入勘测记忆。
                 // 原因是记忆会被拼进下一轮 prompt 并要求 AI「像复诊老医师一样回顾既往结论」，
                 // 一条未经验证的思考流一旦成为"既往结论"，会持续污染后续所有推理。
-                const aiMeta = (reply && reply.__meta) || {};
-                if (aiMeta.fallbackUsed || aiMeta.timedOut || aiMeta.empty) {
+                // 【第三阶段第 3 项】改用统一的 isFormalReply 门控，与重拍触发共用同一判定。
+                if (!isFormalReply(reply)) {
                     appendLog('⚠️ 本轮 AI 未产出正式解读（思考流兜底/超时/空回复），结论未写入勘测记忆，以免污染后续推理。', 'system-log', true);
                 } else {
                     saveMemoryRecord({
@@ -1122,7 +1238,9 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                 // 【P0-2 修复】裁剪历史图片：只保留最近 2 轮带图的 user 消息，
                 // 更早的图片替换为文字摘要，避免多轮补拍后 base64 无界累积直至平台拒绝
                 pruneImageHistory();
-                if (reply && reply.includes('【重拍')) {
+                // 【第三阶段第 3 项】仅正式解读才允许触发补拍：思考流兜底/超时/空回复中的
+                // "重拍"二字属模型内部推演，不是对用户的正式请求，据此点按钮会让用户白跑一趟。
+                if (isFormalReply(reply) && reply.includes('【重拍')) {
                     retakeBtn.style.display = 'block';
                     appendLog('📷 大师请求补拍：请点击下方"按要求补拍"按钮继续本轮分析。', 'system-log', true);
                 }
@@ -1384,8 +1502,29 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
             // 【第二阶段第 13 项】把本轮可信状态挂到返回值上（字符串对象的隐藏属性），
             // 使调用方能判断"这是正式解读"还是"思考流兜底"，从而决定是否写入勘测记忆。
             // 不改返回类型，向后兼容既有调用点。
-            try { Object.defineProperty(fullReply, '__meta', { value: { fallbackUsed, timedOut: !!streamTimedOut, empty: !fullReply }, enumerable: false }); } catch (e) {}
+            // 【第三阶段第 3 项】补充 formal 标记：仅当本轮产出了正式解读正文才为 true。
+            // 兜底路径下 fullReply = reasoningFull（思考流），其中可能出现"重拍"等字样，
+            // 若直接用字符串匹配触发补拍按钮，会把思考流误当成 AI 的正式请求。
+            try {
+                Object.defineProperty(fullReply, '__meta', {
+                    value: {
+                        fallbackUsed,
+                        timedOut: !!streamTimedOut,
+                        empty: !fullReply,
+                        formal: !fallbackUsed && !streamTimedOut && !!fullReply,
+                    },
+                    enumerable: false,
+                });
+            } catch (e) {}
             return fullReply;
+        }
+
+        // 【第三阶段第 3 项】统一的"本轮回复是否可作为正式结论"门控。
+        // 抽取为函数，避免首轮分析、补拍轮、以及任何后续新增调用点各自写一套而漏掉兜底分支。
+        function isFormalReply(reply) {
+            const m = (reply && reply.__meta) || {};
+            // 无 __meta 的旧路径（理论上不应出现）按非正式处理，宁可不触发动作也不误触发
+            return m.formal === true;
         }
 
         // 按大师要求补拍：保留对话与记忆，采集新一轮序列继续分析
@@ -1417,8 +1556,8 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
             }
             // 【第二阶段第 13 项】补拍轮同样受可信度门控约束：
             // 兜底/超时/空回复不得成为"既往结论"，否则会跨轮污染后续推理。
-            const retakeMeta = (reply && reply.__meta) || {};
-            if (retakeMeta.fallbackUsed || retakeMeta.timedOut || retakeMeta.empty) {
+            // 【第三阶段第 3 项】改用统一的 isFormalReply 门控。
+            if (!isFormalReply(reply)) {
                 appendLog('⚠️ 本轮补拍未产出正式解读（思考流兜底/超时/空回复），结论未写入勘测记忆。如需继续，请点🔄开始新勘测。', 'system-log', true);
             } else {
                 saveMemoryRecord({
@@ -1435,7 +1574,8 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                     orientationSource: window.__lastHorosa ? (window.__lastHorosa.orientationSource || '') : '',
                 });
             }
-            if (reply && reply.includes('【重拍')) retakeBtn.style.display = 'block';
+            // 【第三阶段第 3 项】同首轮：仅正式解读才允许触发补拍
+            if (isFormalReply(reply) && reply.includes('【重拍')) retakeBtn.style.display = 'block';
         };
 
         // 交互对话逻辑

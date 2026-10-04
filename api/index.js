@@ -61,6 +61,44 @@ async function resolvePeriodByLichun(year, month, day) {
 }
 
 
+/**
+ * 紫白流年盘按立春换年校正。
+ *
+ * 背景：引擎 `resolveYearFlyingStar(year)` 内部走 `SixtyCycleYear.fromYear(year)`，
+ * 只接受年份参数，而干支年本身以立春换界（实测 fromYear(2024) 返回甲辰年而非甲子年）。
+ * 结果是每年 1/1 至立春之间（约 34 天）所排流年盘错一星：
+ *   实测 2026-01-15 —— 现状给一白（丙午年），立春 2026-02-04 04:02 前应仍为
+ *   乙巳年二黑。此错与已修复的运界缺陷同源，若不同步修正，同一张盘会出现两套时间标准。
+ *
+ * 引擎在同时给出 flowYear + flowMonth + flowDay 时会走节气年路径
+ * （resolveXuanKongFlowStars → monthPlate.solarTermYear），该路径本身是正确的，
+ * 因此这里只需补齐月日；不补月日则保持公历年行为并显式告警。
+ */
+async function resolveFlowYearByLichun(year, month, day) {
+  const hasFullDate = Number.isFinite(Number(month)) && Number.isFinite(Number(day));
+  if (!hasFullDate) {
+    return {
+      year,
+      month: undefined,
+      day: undefined,
+      adjusted: false,
+      note: '未提供流年参照月日，流年盘按公历年干支判定。若所填年份为当年且勘测日期在 1 月 1 日至立春之间（约占每年 34 天），流年入中星可能错一星，可补填流年参照月日消除此误差。',
+    };
+  }
+  const { SolarTerm } = await import('tyme4ts');
+  const m = Number(month);
+  const d = Number(day);
+  const lichun = SolarTerm.fromIndex(year, 3).getJulianDay().getSolarTime();
+  const beforeLichun = m < lichun.getMonth() || (m === lichun.getMonth() && d < lichun.getDay());
+  // 与运界修正保持同一保守口径：立春当日按已过立春处理（日期粒度无法区分当天早晚）
+  const note = `流年盘已按立春换算：${year} 年立春为 ${lichun.getMonth()}月${lichun.getDay()}日 `
+    + `${String(lichun.getHour()).padStart(2, '0')}:${String(lichun.getMinute()).padStart(2, '0')}:${String(lichun.getSecond()).padStart(2, '0')}，`
+    + `所填 ${year}-${m}-${d} ${beforeLichun ? '早于立春，仍属' : '晚于立春，已属'} ${beforeLichun ? year - 1 : year} 年干支。`;
+  // 不改写 year：引擎节气年路径会自行取 solarTermYear 回退，此处只补月日
+  return { year, month: m, day: d, adjusted: beforeLichun, note };
+}
+
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -175,7 +213,7 @@ export default async function handler(req, res) {
   if (pathname === '/api/horosa' && req.method === 'POST') {
     try {
       const { generateResidentialFengshui } = await import('mingyu-core/residential-fengshui');
-      const { heading, northReference, lat, lng, year, flowYear, birthYear, birthMonth, birthDay, gender, uncertainty, houseMonth, houseDay } = req.body || {};
+      const { heading, northReference, lat, lng, year, flowYear, flowMonth, flowDay, birthYear, birthMonth, birthDay, gender, uncertainty, houseMonth, houseDay } = req.body || {};
 
       if (typeof heading !== 'number' || !Number.isFinite(heading) || heading < 0 || heading > 360) {
         return res.status(400).json({ status: 'error', message: '缺少有效的朝向角度 heading（0-360）。' });
@@ -216,7 +254,25 @@ export default async function handler(req, res) {
       if (birthYear) fengshuiInput.birthYear = parseInt(birthYear, 10);
       if (birthMonth) fengshuiInput.birthMonth = parseInt(birthMonth, 10);
       if (birthDay) fengshuiInput.birthDay = parseInt(birthDay, 10);
-      if (flowYear && Number.isFinite(Number(flowYear))) fengshuiInput.flowYear = parseInt(flowYear, 10);
+
+      // 【第三阶段第 1 项】紫白流年盘按立春换年。
+      // 引擎只收年份时走公历干支年，而干支年以立春换界，导致 1/1~立春期间流年星错一星，
+      // 与上方已按立春修正的运界口径自相矛盾。补齐参照月日即走引擎节气年路径（该路径本身正确）。
+      let flowMeta = null;
+      if (flowYear && Number.isFinite(Number(flowYear))) {
+        const requestedFlowYear = parseInt(flowYear, 10);
+        const flow = await resolveFlowYearByLichun(requestedFlowYear, flowMonth, flowDay);
+        fengshuiInput.flowYear = requestedFlowYear;
+        if (flow.month !== undefined) {
+          fengshuiInput.flowMonth = flow.month;
+          fengshuiInput.flowDay = flow.day;
+        }
+        flowMeta = {
+          requestedFlowYear,
+          flowYearAdjustedByLichun: flow.adjusted,
+          flowYearBoundaryNote: flow.note,
+        };
+      }
       if (gender) fengshuiInput.gender = gender;
 
       const result = generateResidentialFengshui(fengshuiInput);
@@ -237,6 +293,8 @@ export default async function handler(req, res) {
           effectiveHouseYear: effectiveYear,
           periodAdjustedByLichun: period.adjusted,
           periodBoundaryNote: period.note,
+          // 流年口径（第三阶段第 1 项）：与运界同为立春换年标准
+          ...(flowMeta || {}),
           // 命卦口径声明（第二阶段第 9 项）：
           // 引擎用"年份除九取余 + 11/4"，与民间"数字和法"结果半数不同，
           // 不声明会让用户无法与别处对照，也无法判断结论出自哪一派。
