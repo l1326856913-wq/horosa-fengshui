@@ -2162,6 +2162,42 @@ O. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
         }
 
         document.getElementById('start-btn').addEventListener('click', async () => {
+            // ===== 罗盘权限：必须是点击手势内的第一次调用（初始顺序修复 2026-10-04）=====
+            // iOS 13+ 的 DeviceOrientationEvent.requestPermission() 要求在用户手势的
+            // 同步调用栈中发起。此前流程是 await GPS（等待可达 20 秒）之后再请求罗盘权限，
+            // await 已脱离手势上下文 → iOS 不弹询问、直接拒绝——表现为"只问相机、从不问罗盘"。
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const perm = await DeviceOrientationEvent.requestPermission(); // 手势内第一调用
+                    if (perm === 'granted') {
+                        attachCompassListeners();
+                    } else {
+                        appendLog(`⚠️ 罗盘权限未授权（${perm}）。点击右上角「地图拉线定向」可改用真北模式（无需罗盘）。`, 'system-log', true);
+                    }
+                } catch (e) {
+                    appendLog(`⚠️ 罗盘权限请求失败（${e.message}）。点击右上角「地图拉线定向」可改用真北模式。`, 'system-log', true);
+                }
+            } else {
+                // Android / 桌面：deviceorientation 事件无需显式授权（HTTPS 下直接可用），
+                // 安卓本就不弹罗盘询问属平台行为；桌面无磁力计由 3 秒诊断提示。
+                attachCompassListeners();
+            }
+            // 罗盘监听注册（复检修复 2026-10-04）：
+            // 双事件监听 + 数据源探测。此前非 iOS 设备只监听 deviceorientationabsolute，
+            // 微信 X5 内核/多数国产浏览器不派发该事件且无降级无提示——罗盘静默失效。
+            function attachCompassListeners() {
+                if (compassListenersAttached) return;
+                compassListenersAttached = true;
+                window.addEventListener('deviceorientationabsolute', e => handleOrientation(e, 'absolute'));
+                window.addEventListener('deviceorientation', e => handleOrientation(e, 'relative'));
+                // 【用户口径修复】罗盘数据缺失只提示、不自动切换：
+                // 桌面浏览器无磁力计，此前 3 秒诊断自动跳地图，导致"一打开就是地图选位"。
+                setTimeout(() => {
+                    if (!compassDataSeen && !isMapMode) {
+                        appendLog('⚠️ 未收到罗盘数据（设备无磁力计、浏览器不支持或页面非 HTTPS）。罗盘画面仍可拍摄实景；需要定向时点击右上角「地图拉线定向」改用真北模式。', 'system-log', true);
+                    }
+                }, 3000);
+            }
             // GPS：磁偏角修正的必需输入。必须 await 并暴露失败原因，
             // 否则室内/无定位场景会一路静默走到 /api/horosa 才报 400。
             if (navigator.geolocation) {
@@ -2190,37 +2226,6 @@ O. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
             // 【用户口径修复 2026-10-04】无 GPS 不再自动跳转地图模式：
             // 罗盘采集画面保持默认可用，GPS 缺失只在排盘时被 /api/horosa 拦截并给出可执行指引。
             // 自动跳转会把用户（尤其在桌面浏览器测试时）强制丢到地图选位，违背"罗盘采集"主路径。
-            // 罗盘监听注册（复检修复 2026-10-04）：
-            // 双事件监听 + 数据源探测。此前非 iOS 设备只监听 deviceorientationabsolute，
-            // 微信 X5 内核/多数国产浏览器不派发该事件且无降级无提示——罗盘静默失效。
-            // iOS 13+ 的 requestPermission 失败也不再静默，明确告知并降级。
-            function attachCompassListeners() {
-                if (compassListenersAttached) return;
-                compassListenersAttached = true;
-                window.addEventListener('deviceorientationabsolute', e => handleOrientation(e, 'absolute'));
-                window.addEventListener('deviceorientation', e => handleOrientation(e, 'relative'));
-                // 【用户口径修复】罗盘数据缺失只提示、不自动切换：
-                // 桌面浏览器无磁力计，此前 3 秒诊断自动跳地图，导致"一打开就是地图选位"。
-                setTimeout(() => {
-                    if (!compassDataSeen && !isMapMode) {
-                        appendLog('⚠️ 未收到罗盘数据（设备无磁力计、浏览器不支持或页面非 HTTPS）。罗盘画面仍可拍摄实景；需要定向时点击右上角「地图拉线定向」改用真北模式。', 'system-log', true);
-                    }
-                }, 3000);
-            }
-            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                try {
-                    const perm = await DeviceOrientationEvent.requestPermission();
-                    if (perm === 'granted') {
-                        attachCompassListeners();
-                    } else {
-                        appendLog(`⚠️ 罗盘权限未授权（${perm}）。点击右上角「地图拉线定向」可改用真北模式（无需罗盘）。`, 'system-log', true);
-                    }
-                } catch (e) {
-                    appendLog(`⚠️ 罗盘权限请求失败（${e.message}）。点击右上角「地图拉线定向」可改用真北模式。`, 'system-log', true);
-                }
-            } else {
-                attachCompassListeners();
-            }
             await initCamera().catch(err => {
                 appendLog('📷 相机启动失败：' + err.message + '。请检查浏览器权限，或在 HTTPS 环境下重试。', 'system-log', true);
             });

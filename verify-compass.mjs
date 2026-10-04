@@ -69,6 +69,27 @@ sec('【⑤】罗盘停更复位');
 ok('resetBtn 重置 isCompassCalibrated = false',
   /resetBtn\.onclick[\s\S]{0,600}?isCompassCalibrated = false;/.test(html));
 
+sec('【⑦】初始权限顺序（iOS 手势上下文）');
+{
+  // iOS 13+ 的 DeviceOrientationEvent.requestPermission() 必须在用户手势的同步调用栈中
+  // 发起。此前先 await GPS 再请求罗盘权限，await 脱离手势上下文 → iOS 不弹询问直接拒绝，
+  // 表现为"只问相机、从不问罗盘"。
+  const js = (html.match(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/) || [])[1] || '';
+  const startIdx = js.indexOf("getElementById('start-btn')");
+  const reqIdx = js.indexOf('DeviceOrientationEvent.requestPermission()', startIdx);
+  const gpsIdx = js.indexOf('navigator.geolocation', startIdx);
+  const camIdx = js.indexOf('initCamera()', startIdx);
+  ok('requestPermission 在 start-btn 内且先于 GPS 发起（手势上下文完整）',
+    startIdx > 0 && reqIdx > startIdx && gpsIdx > reqIdx,
+    `requestPermission@${reqIdx} < GPS@${gpsIdx}`);
+  ok('罗盘权限先于相机初始化（询问顺序：罗盘→定位→相机）',
+    camIdx > reqIdx, `requestPermission@${reqIdx} < initCamera@${camIdx}`);
+  ok('attachCompassListeners 仅定义一处（无重复注册）',
+    (js.match(/function attachCompassListeners/g) || []).length === 1);
+  ok('非 iOS 分支注释说明安卓不弹询问属平台行为',
+    html.includes('安卓本就不弹罗盘询问属平台行为'));
+}
+
 sec('【⑥】回归：引擎验收套件不受影响');
 {
   const { execFileSync, execSync } = await import('node:child_process');
