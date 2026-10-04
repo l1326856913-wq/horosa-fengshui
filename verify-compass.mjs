@@ -34,21 +34,26 @@ ok('iOS webkitCompassHeading 归入磁北口径（absolute: false）',
 ok('absolute 事件 alpha 带真北标记（event.absolute === true）',
   /absolute:\s*event\.absolute === true/.test(html));
 
-sec('【②】iOS 权限失败不再静默');
+sec('【②】iOS 权限失败不再静默（提示手动切换，不自动跳转）');
 ok('requestPermission 拒绝路径有日志提示',
   /罗盘权限未授权（\$\{perm\}）/.test(html));
 ok('requestPermission 异常路径有日志提示',
   /罗盘权限请求失败（\$\{e\.message\}）/.test(html));
-ok('拒绝/异常后自动降级地图模式',
-  html.split('罗盘权限未授权').length === 2 && html.includes('if (!isMapMode) document.getElementById(\'switch-mode-btn\').click();'));
+ok('拒绝/异常路径给出手动切换指引（不自动跳转）',
+  html.includes('「地图拉线定向」可改用真北模式'));
 
-sec('【③】无罗盘数据诊断与自动降级');
-ok('3 秒无数据诊断定时器在位',
+sec('【③】罗盘数据缺失诊断（只提示不切换）');
+ok('无罗盘数据诊断定时器在位',
   html.includes('!compassDataSeen && !isMapMode') && html.includes(', 3000);'));
 ok('诊断文案说明原因（无磁力计/不支持/非 HTTPS）',
   html.includes('设备无磁力计、浏览器不支持或页面非 HTTPS'));
+ok('诊断只提示不自动切（罗盘采集保持默认）',
+  !/罗盘数据[^。]*已自动切换/.test(html));
 ok('首帧罗盘激活日志标明数据源与口径',
   html.includes('罗盘已激活（数据源：') && html.includes('排盘无需磁偏角修正') && html.includes('排盘将按 GPS 磁偏角修正'));
+ok('无 GPS 不再自动跳地图（GPS 失败只提示）',
+  !html.includes('系统将自动切换到地图拉线定向模式')
+  && !/if \(userLat == null \|\| userLng == null\) \{\s*if \(!isMapMode\) document\.getElementById\('switch-mode-btn'\)\.click\(\);/.test(html));
 
 sec('【④】传感器口径纪律（专业准确性）');
 ok('northReference 按罗盘数据源判定（compassRef）',

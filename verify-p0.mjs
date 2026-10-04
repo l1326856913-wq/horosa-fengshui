@@ -108,17 +108,19 @@ console.log('P0-4 验证：无 GPS 降级链路');
 console.log('='.repeat(78));
 const gpsScenarios = [
   { gps: '授权成功', lat: 39.9, lng: 116.4, expect: '罗盘模式可用（磁偏角按 WMM 修正）' },
-  { gps: '授权被拒', lat: null, lng: null, expect: '自动切地图拉线模式（真北，无需磁偏角）' },
-  { gps: '定位超时', lat: null, lng: null, expect: '自动切地图拉线模式（真北，无需磁偏角）' },
+  { gps: '授权被拒', lat: null, lng: null, expect: '保持罗盘模式（提示可手动切地图）；排盘时拦截并给可执行指引' },
+  { gps: '定位超时', lat: null, lng: null, expect: '保持罗盘模式（提示可手动切地图）；排盘时拦截并给可执行指引' },
   { gps: '精度差(>50m)', lat: 39.9, lng: 116.4, accuracy: 300, expect: '可用但提示精度偏低；排盘前仍有二次拦截' },
 ];
 for (const s of gpsScenarios) {
   const noGps = s.lat == null || s.lng == null;
-  const willFallback = noGps;
-  const blockedAtChart = !noGps && s.accuracy > 50;  // 精度差时仅告警，不阻断
-  let verdict = willFallback ? '🔄 自动切地图模式' : (blockedAtChart ? '⚠️ 提示精度偏低' : '✅ 罗盘可用');
+  // 【用户口径修复 2026-10-04】无 GPS 不再自动切地图：罗盘保持默认可用，
+  // 仅提示可手动切换；真正排盘时由 /api/horosa 前置拦截（magnetic 缺 GPS → 400 指引）。
+  const blockedAtChart = noGps;
+  const warnAccuracy = !noGps && s.accuracy > 50;  // 精度差时仅告警，不阻断
+  let verdict = blockedAtChart ? '⚠️ 保持罗盘+提示手动切地图（排盘时拦截）' : (warnAccuracy ? '⚠️ 提示精度偏低' : '✅ 罗盘可用');
   console.log(`${s.gps.padEnd(14)} → ${verdict}   期望：${s.expect}`);
-  if (willFallback) console.log(`${''.padEnd(14)}    并在 /api/horosa 前置拦截：magenta 口径缺 GPS 直接 throw 可执行错误指引`);
+  if (blockedAtChart) console.log(`${''.padEnd(14)}    并在 /api/horosa 前置拦截：magnetic 口径缺 GPS 直接 throw 可执行错误指引`);
 }
 
 console.log('');

@@ -2181,16 +2181,15 @@ O. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                     }
                 } catch (err) {
                     gpsError = (err && err.message) || '定位失败';
-                    appendLog(`⚠️ 未获取到 GPS 坐标（${gpsError}）。罗盘测向需要 GPS 才能修正磁偏角，系统将自动切换到地图拉线定向模式（直接使用真北，无需磁偏角修正）。`, 'system-log', true);
+                    appendLog(`⚠️ 未获取到 GPS 坐标（${gpsError}）。罗盘测向需要 GPS 修正磁偏角：可重新允许定位后重试；或点击右上角「地图拉线定向」改用真北模式（无需 GPS）。罗盘画面保持可用，不会自动切换。`, 'system-log', true);
                 }
             } else {
                 gpsError = '浏览器不支持地理定位';
-                appendLog('⚠️ 当前浏览器不支持地理定位，罗盘磁偏角无法修正，将使用地图拉线定向模式。', 'system-log', true);
+                appendLog('⚠️ 当前浏览器不支持地理定位，罗盘磁偏角无法修正。点击右上角「地图拉线定向」可改用真北模式（无需 GPS）。', 'system-log', true);
             }
-            // 无 GPS 时直接进入地图拉线模式，避免用户在无解的罗盘路径上浪费时间
-            if (userLat == null || userLng == null) {
-                if (!isMapMode) document.getElementById('switch-mode-btn').click();
-            }
+            // 【用户口径修复 2026-10-04】无 GPS 不再自动跳转地图模式：
+            // 罗盘采集画面保持默认可用，GPS 缺失只在排盘时被 /api/horosa 拦截并给出可执行指引。
+            // 自动跳转会把用户（尤其在桌面浏览器测试时）强制丢到地图选位，违背"罗盘采集"主路径。
             // 罗盘监听注册（复检修复 2026-10-04）：
             // 双事件监听 + 数据源探测。此前非 iOS 设备只监听 deviceorientationabsolute，
             // 微信 X5 内核/多数国产浏览器不派发该事件且无降级无提示——罗盘静默失效。
@@ -2200,11 +2199,11 @@ O. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                 compassListenersAttached = true;
                 window.addEventListener('deviceorientationabsolute', e => handleOrientation(e, 'absolute'));
                 window.addEventListener('deviceorientation', e => handleOrientation(e, 'relative'));
-                // 3 秒无任何有效罗盘数据 → 诊断 + 自动降级地图拉线（桌面/无磁力计设备的合理路径）
+                // 【用户口径修复】罗盘数据缺失只提示、不自动切换：
+                // 桌面浏览器无磁力计，此前 3 秒诊断自动跳地图，导致"一打开就是地图选位"。
                 setTimeout(() => {
                     if (!compassDataSeen && !isMapMode) {
-                        appendLog('⚠️ 3 秒内未收到罗盘数据（设备无磁力计、浏览器不支持或页面非 HTTPS）。已自动切换到地图拉线定向模式（真北，无需罗盘）。', 'system-log', true);
-                        document.getElementById('switch-mode-btn').click();
+                        appendLog('⚠️ 未收到罗盘数据（设备无磁力计、浏览器不支持或页面非 HTTPS）。罗盘画面仍可拍摄实景；需要定向时点击右上角「地图拉线定向」改用真北模式。', 'system-log', true);
                     }
                 }, 3000);
             }
@@ -2214,12 +2213,10 @@ O. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                     if (perm === 'granted') {
                         attachCompassListeners();
                     } else {
-                        appendLog(`⚠️ 罗盘权限未授权（${perm}）。已自动切换到地图拉线定向模式（真北，无需磁偏角修正）。`, 'system-log', true);
-                        if (!isMapMode) document.getElementById('switch-mode-btn').click();
+                        appendLog(`⚠️ 罗盘权限未授权（${perm}）。点击右上角「地图拉线定向」可改用真北模式（无需罗盘）。`, 'system-log', true);
                     }
                 } catch (e) {
-                    appendLog(`⚠️ 罗盘权限请求失败（${e.message}）。已自动切换到地图拉线定向模式。`, 'system-log', true);
-                    if (!isMapMode) document.getElementById('switch-mode-btn').click();
+                    appendLog(`⚠️ 罗盘权限请求失败（${e.message}）。点击右上角「地图拉线定向」可改用真北模式。`, 'system-log', true);
                 }
             } else {
                 attachCompassListeners();
