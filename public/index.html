@@ -745,7 +745,10 @@ O. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
             }
 
             if (x) {
-                html += `<div class="luopan-meta">${escHtml(String(x.period.label))}｜${escHtml(String(x.sitMountain))}山${escHtml(String(x.facingMountain))}向｜${escHtml(String(x.guaType))}｜局型：${escHtml(String(x.formation))}${yp ? `｜流年${escHtml(String(yp.year))}·${escHtml(String(yp.starName))}入中` : ''}</div>`;
+                // 【复检修复】daoShanXiang：引擎独立的「到山到向」判定（旺山旺向/上山下水之外的
+                // 精确表述：山星到坐否、向星到向否），此前仅局型展示、引擎逐字结论被丢弃。
+                const dsx = x.daoShanXiang && x.daoShanXiang.summary ? `｜到山到向：${escHtml(String(x.daoShanXiang.summary))}` : '';
+                html += `<div class="luopan-meta">${escHtml(String(x.period.label))}｜${escHtml(String(x.sitMountain))}山${escHtml(String(x.facingMountain))}向｜${escHtml(String(x.guaType))}｜局型：${escHtml(String(x.formation))}${dsx}${yp ? `｜流年${escHtml(String(yp.year))}·${escHtml(String(yp.starName))}入中` : ''}</div>`;
                 if (x.palaces && x.palaces.length === 9) {
                     const byGong = {};
                     x.palaces.forEach(p => { byGong[p.gong] = p; });
@@ -862,10 +865,24 @@ O. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
             },
         };
 
-        // 引擎应对建议（r.advice 为引擎确定性输出）
+        // 引擎应对建议（r.advice 与 r.agreements 均为引擎确定性输出）
         function advicePanel(hData) {
-            const a = hData.advice || [];
-            return `<div class="advice-panel"><div class="luopan-title">【引擎应对建议】</div>${a.map(x => `<div>· ${x}</div>`).join('') || '<div>暂无</div>'}<div class="luopan-note">来源：mingyu-core 引擎确定性输出，非AI生成。</div></div>`;
+            // 【复检修复】advice 逐条补 escHtml：与本项目"引擎字符串统一收敛转义"口径一致
+            const a = (hData.advice || []).map(x => escHtml(String(x)));
+            let html = `<div class="advice-panel"><div class="luopan-title">【引擎应对建议】</div>${a.map(x => `<div>· ${x}</div>`).join('') || '<div>暂无</div>'}`;
+            // 【复检修复】agreements：引擎的玄空+八宅「两法合参共识层」（确定性输出），
+            // 此前被前端完全丢弃——引擎已交叉比对了宅运结构与人宅适配，用户却看不到。
+            const ags = hData.agreements || [];
+            if (ags.length) {
+                html += '<div style="margin-top:6px;border-top:1px dashed rgba(212,175,55,0.25);padding-top:5px;">'
+                    + '<div style="color:var(--gold);margin-bottom:3px;">两法合参共识：</div>'
+                    + ags.map(g => `<div>· <b style="color:#d4af37;">${escHtml(String(g.title || ''))}</b>`
+                        + (g.level ? `（${escHtml(String(g.level))}）` : '')
+                        + `：${escHtml(String(g.detail || ''))}</div>`).join('')
+                    + '</div>';
+            }
+            html += '<div class="luopan-note">来源：mingyu-core 引擎确定性输出（含两法合参共识），非AI生成。</div></div>';
+            return html;
         }
 
         // 方位宜忌提醒：九宫星数与生克关系取自引擎盘面；九星宜忌文案取自本地通行星性口径表。
@@ -902,6 +919,24 @@ O. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                 const bu = (b.unluckyDirections || []).map(d => `${escHtml(String(d.direction))}（${escHtml(String(d.label))}）`).join('、');
                 if (yi) html += `<div class="remind-bazhai">八宅吉位：大门/卧室/书房宜优先设于 ${yi}</div>`;
                 if (bu) html += `<div class="remind-bazhai">八宅凶位：大门/卧室/厨房不宜设于 ${bu}</div>`;
+            }
+            // 【复检修复】gasRegulation：引擎的宅卦星宫调节（压服法则）。
+            // 引擎已对八个吉凶星逐一给出「星宫生克法则（宫生星/星生宫/宫克星/星克宫/比和）
+            // + 应对建议」，属确定性输出，此前被前端完全丢弃——展示层只剩本地星性口径表，
+            // 用户问"这个方位该怎么处理"时拿不到引擎的逐位结论。
+            // 引擎把该字段挂在 bazhai 下（xuankong 侧未来可能给出），读取时两侧兼容。
+            const gr = (b && b.gasRegulation) || (x && x.gasRegulation) || null;
+            if (gr && Array.isArray(gr.suppressionLaws) && gr.suppressionLaws.length) {
+                html += '<div class="remind-bazhai" style="margin-top:8px;"><span style="color:var(--gold);">宅卦星宫调节（引擎压服法则）：</span>';
+                if (gr.doorMasterSummary) html += `<div style="margin:3px 0;">${escHtml(String(gr.doorMasterSummary))}</div>`;
+                html += gr.suppressionLaws.map(l => {
+                    let line = [escHtml(String(l.star || '')),
+                        l.counterpart ? escHtml(String(l.counterpart)) : '',
+                        l.suppressionRule ? `【${escHtml(String(l.suppressionRule))}】` : ''].filter(Boolean).join(' · ');
+                    if (l.advice) line += `<br><span style="color:#a89a6a;">${escHtml(String(l.advice))}</span>`;
+                    return `<div style="margin:4px 0;">· ${line}</div>`;
+                }).join('');
+                html += '</div>';
             }
             html += '</div>';
             return html;
