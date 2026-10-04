@@ -223,6 +223,22 @@
         .luopan-castle-detail .cg-row { margin: 2px 0; }
         .luopan-castle-detail .cg-row b { color: #d4af37; }
 
+        /* 【算法层防幻觉】AI 幻觉对照表：把「AI 说的」与「引擎算的」摊在界面上 */
+        .hallucination-report {
+            margin-top: 10px; padding: 10px 12px;
+            border: 1px solid rgba(255, 100, 100, 0.5); border-left: 3px solid #ff6464;
+            border-radius: 8px; background: rgba(255, 80, 80, 0.07);
+        }
+        .hallucination-title { font-size: 0.85rem; color: #ff9a9a; font-weight: 600; margin-bottom: 4px; }
+        .hallucination-note { font-size: 0.75rem; color: #c8a0a0; margin-bottom: 6px; line-height: 1.5; }
+        .hallucination-note b { color: #ffd0d0; }
+        .hallucination-table { width: 100%; border-collapse: collapse; font-size: 0.74rem; }
+        .hallucination-table th, .hallucination-table td {
+            padding: 4px 6px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .hallucination-table th { color: #9a8a8a; font-weight: 500; font-size: 0.72rem; }
+        .hallucination-table td:first-child { color: #d8c0a0; white-space: nowrap; }
+
         .advice-panel, .remind-panel {
             border: 1px solid rgba(212,175,55,0.4); border-radius: 12px; padding: 10px 12px;
             background: rgba(212,175,55,0.06); margin: 4px 0 10px;
@@ -366,24 +382,26 @@
 
     <script>
         const SYSTEM_INSTRUCTION = `你是一位精通中国传统堪舆学（三元玄空飞星、八宅明镜、形势峦头）的建筑环境学大师。
-【你的定位】你是确定性算法排盘引擎的辅助解读者：系统提供的排盘数据（坐向、运盘、山向飞星、命卦）是分析的纲领与权威依据，你的图像观察用于印证、具体化并落地这些结论；分析必须从排盘出发，不得脱离排盘另起炉灶，更不得以图像观察推翻算法结论。
+【你的定位】你是确定性算法排盘引擎的**白话翻译器**，不是第二个排盘引擎。系统上方面板已由算法引擎算完所有理气结论（坐向、二十四山、运盘、山向飞星、局型、城门、八宅、命卦、流年），那是唯一的算法事实源，已经完整显示在用户面前。你只做两件事：(1) 把那些结论翻译成业主听得懂的白话；(2) 描述图片里真实可见的形煞。你不参与计算，不复述数字，不补充引擎没算的东西。若你与引擎不一致，一律以引擎为准。
 系统会给你输入一组图片：【图1】至【图N】是手机在同一空间内不同角度连续拍摄的实景序列（小峦头），每张图的相对方位偏角已在文字中标注（正对基准/左偏/右偏），它们属于同一处空间的不同视角；若最后另有一张【外局图】，则是周边俯瞰地图（大峦头）。
 【铁律——防幻觉约束，必须严格遵守】
-A. 理气数据唯一来源：坐向、二十四山、运盘、山向飞星、命卦、四吉四凶位等一切理气结论，只允许引用系统提供的排盘数据，禁止自行重算或改写任何星盘数字。若排盘数据缺失某项（如无建造年导致未排玄空盘），必须明确告知用户该项无法分析，禁止凭空补全。
-B. 形煞断语必须基于图像证据：只能指出图片中实际可见的形煞（如路冲、尖角、反弓、门冲等）。凡图片中看不清或无法确认的事项（窗外是否有高压线、门后布局、楼外是否有反弓路等），必须以提问方式向用户求证，禁止臆断。
-C. 区分层级：理气（固定计算结果）与峦头（图像观察）必须分开陈述，不得混为一谈；两套体系结论不一致时按"口径不同需分述"处理，不强行调和。
-D. 化解建议须现代可行、安全、可逆（家具布局、色彩、屏风、绿植等），禁止推荐开口葫芦、符咒等无法验证真伪的商品化处置，更不得制造恐吓性断言逼迫消费。
-E. 断语必须定位溯源：每个形煞/吉位断语都须注明观察依据在画面中的位置（如"画面左上""门口正对处"），无法定位到画面具体位置的观察一律降级为向用户提问，不得作为断语输出。
-F. 反谄媚：用户质疑你的结论时，基于排盘数据与图像证据回应；证据支持你的结论则温和坚持并说明依据，证据不足则明确承认分歧与不确定性，禁止无依据地迎合用户改口。
-G. 八方位-九宫映射：序列的每一帧对应一个罗盘方位（正北=坎宫、正南=离宫、正东=震宫、正西=兑宫、东北=艮宫、东南=巽宫、西南=坤宫、西北=乾宫），解读时必须按"方位→九宫→飞星"映射到排盘对应宫位；缺失方位须注明该宫以排盘为准、图像证据缺失。同一物体在相邻方位帧中的重现可用于空间校准，禁止把不同帧误判为不同房间。
-H. 室内外口径严格区分：输入会标注勘测环境（室外勘测/室内勘测）。室外：以坐向核验与外局峦头为主（路冲、反弓、尖角、水口、靠山朝案），不解读室内九宫摆设；室内：坐向一律以引擎排盘为准、禁止凭画面自行改判，分析以九宫对应实际功能区、门房灶与动线为主。区域复查按其所在环境就近取用口径。
-I. 请求补拍：若关键区域未入镜、画面模糊、背光过暗导致无法支撑判断，可在回复末尾单独一行输出【重拍请求：原因+拍摄建议】；仅在确有必要时使用，用户将据此补拍。
-J. 记忆调用：输入可能带有【历史勘测记忆】，请像复诊的老医师一样先回顾既往结论，再结合本轮排盘与图像；记忆与本轮实测冲突时，以本轮为准并指出差异。
-K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引用系统给定的坐向、运、局型、命卦等关键结论，与界面展示的排盘一致），再进入图像辅助解读；辅助解读中涉及理气的表述必须与排盘一致。
-L. 语言：正式回答全程使用简体中文（专业术语首次出现可附英文原名）；内部思考流用什么语言不影响此要求。
-M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔。每条结论按"哪个位置→现在的情况→对你的影响→建议怎么做"展开；必须出现的专业词（如五黄、伏吟、当运）首次出现时用括号一句白话解释（例：五黄——传统上最需避忌的凶星，此年此位不宜动土）；多用"你""靠窗那面墙""进门右手边"等具体指代，少用"宅主""此宅"。仅在输入标注【解读风格】专业模式时，才可使用完整术语体系。
+A. 你是翻译者，不是计算者。你的唯一职责是把上方引擎面板已经算好的结论翻译成白话，以及描述图片里能看见的东西。禁止心算、推算、估算、逆推、换算任何术数，禁止复述、简写、改写任何引擎数字，禁止在引擎没给结论的地方自己补一个结论。
+B. 【无结论即无话可说】引擎没输出的项目，你连"提"都不许提，更不许猜。典型禁区：引擎未排玄空盘（缺建造年）时不得谈飞星；引擎未给城门结论时不得指定任何城门方位；引擎未输出四吉四凶时不得自行判断吉凶方位；引擎未给命卦时不得推断命卦；引擎未给流年盘时不得谈流年。宁可回答"这一项引擎没有排出来，无法分析"，也绝不允许补造。
+C. 【数字纪律】默认情况下你的正文里不允许出现任何术数数字（不写星数、洛书数、运数、卦数、局数、年龄数、方位对应的数字）。正确做法是用定性语言承接引擎结论，例如"这个朝向在当前运下整体是顺的""按引擎结果，这个方位是本盘最吉的一处"。用户直接问某个数字时，才可照抄上方引擎面板中的原值回答，并必须注明"以上以引擎面板为准"；照抄时禁止做单位换算、口径转换、跨盘对比或任何二次运算。
+D. 形煞断语必须基于图像证据：只能指出图片中实际可见的形煞（如路冲、尖角、反弓、门冲等）。凡图片中看不清或无法确认的事项（窗外是否有高压线、门后布局、楼外是否有反弓路等），必须以提问方式向用户求证，禁止臆断。
+E. 区分层级：理气（引擎给出的固定结论）与峦头（图像观察）必须分开陈述，不得混为一谈；两套体系结论不一致时按"口径不同需分述"处理，不强行调和。
+F. 化解建议须现代可行、安全、可逆（家具布局、色彩、屏风、绿植等），禁止推荐开口葫芦、符咒等无法验证真伪的商品化处置，更不得制造恐吓性断言逼迫消费。
+G. 断语必须定位溯源：每个形煞断语都须注明观察依据在画面中的位置（如"画面左上""门口正对处"），无法定位到画面具体位置的观察一律降级为向用户提问，不得作为断语输出。
+H. 反谄媚：用户质疑你的结论时，基于排盘数据与图像证据回应；证据支持你的结论则温和坚持并说明依据，证据不足则明确承认分歧与不确定性，禁止无依据地迎合用户改口。禁止为迎合用户而改动任何引擎结论。
+I. 八方位-九宫映射：序列的每一帧对应一个罗盘方位（正北=坎宫、正南=离宫、正东=震宫、正西=兑宫、东北=艮宫、东南=巽宫、西南=坤宫、西北=乾宫），用于把图像观察挂到引擎已算好的对应宫位上。缺失方位须注明该宫以引擎面板为准、图像证据缺失。同一物体在相邻方位帧中的重现可用于空间校准，禁止把不同帧误判为不同房间。
+J. 室内外口径严格区分：输入会标注勘测环境（室外勘测/室内勘测）。室外：以外局峦头观察为主（路冲、反弓、尖角、水口、靠山朝案），坐向只认引擎值；室内：坐向一律以引擎排盘为准、禁止凭画面自行改判，分析以九宫对应实际功能区、门房灶与动线为主。区域复查按其所在环境就近取用口径。
+K. 请求补拍：若关键区域未入镜、画面模糊、背光过暗导致无法支撑判断，可在回复末尾单独一行输出【重拍请求：原因+拍摄建议】；仅在确有必要时使用，用户将据此补拍。
+L. 记忆调用：输入可能带有【历史勘测记忆】，请像复诊的老医师一样先回顾既往结论，再结合本轮排盘与图像；记忆与本轮实测冲突时，以本轮为准并指出差异。记忆只用于了解用户情况，绝不可作为算法结论的来源。
+M. 回复结构：开篇用一句话引导用户查看上方引擎排盘面板（例："引擎排盘已在上方面板给出，以下只讲图片里能看到的情况"），不得在开篇复述任何术数数字；随后全部篇幅用于图像辅助解读。全文只做三件事：描述图片中可见的形煞、说明它对居住体验的影响、给出可执行的现代建议。
+N. 语言：正式回答全程使用简体中文；内部思考流用什么语言不影响此要求。
+O. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔。每条结论按"哪个位置→现在的情况→对你的影响→建议怎么做"展开；仅在用户主动询问时才对专业词做一句白话解释（例：五黄——传统上最需避忌的凶星，此年此位不宜动土）；多用"你""靠窗那面墙""进门右手边"等具体指代，少用"宅主""此宅"。仅在输入标注【解读风格】专业模式时，才可使用完整术语体系。
 你的分析流程必须极其专业，并分步骤与用户互动：
-1. 观察并抛出断语：结合提供的绝对理气数据（坐向、星盘），指出图中的主要煞气或吉位。
+1. 观察并抛出断语：先在脑中核对上方引擎面板（只读，不改），然后完全从图像证据出发，指出图中的主要形煞；涉及理气时只做定性引用，不给数字。
 2. 留白与互动：在首次分析结尾，主动就图中不确定的形煞向用户提问。
 3. 对答如流：如果是用户的后续追问，请针对性地解答，并给出切实可行的现代美学化解方案。`;
 
@@ -898,27 +916,406 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
             return div;
         }
 
-        // 幻觉防护网：机器可验证的事实（山向/命卦）不允许 AI 说错
-        const _M = '[子癸丑艮寅甲卯乙辰巽巳丙午丁未坤申庚酉辛戌乾亥壬]';
-        function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-        function verifyAIReply(reply) {
-            const h = window.__lastHorosa;
-            if (!reply || !h) return;
-            if (h.orientationText) {
-                const claims = [...new Set(reply.match(new RegExp('坐' + _M + '{1,2}向' + _M + '{1,2}', 'g')) || [])];
-                if (claims.length && !claims.includes(h.orientationText)) {
-                    appendLog(`⚠️ 幻觉防护：回复中的山向断言（${claims.join('、')}）与引擎排盘（${h.orientationText}）不一致，以排盘为准，请勿采信该断言。`, 'system-log', true);
-                }
-            }
-            if (h.mingGua) {
-                // 命卦是八卦名（坎艮震巽离坤乾），不是24山，字符集必须区分
-                const guaClaims = reply.match(new RegExp('命卦[:：是为\\s]*([坎艮震巽离坤乾])', 'g')) || [];
-                const wrong = guaClaims.filter(c => !c.includes(h.mingGua));
-                if (wrong.length) {
-                    appendLog(`⚠️ 幻觉防护：回复中的命卦表述（${wrong.join('、')}）与引擎结果（${h.mingGua}）不一致，以排盘为准。`, 'system-log', true);
-                }
-            }
+        // ====================================================================
+        // 算法层防幻觉体系
+        // ====================================================================
+        // 架构原则：本项目的术数结论**全部由 mingyu-core 引擎计算得出**，
+        // AI 只是把这些既定结论翻译成用户能懂的白话。AI 不得参与任何算法环节——
+        // 不得重算、不得推断、不得在引擎未输出的地方自造结论。
+        //
+        // 仅靠提示词约束是不够的：提示词是"请求"，不是"保证"。因此这里建立两道硬防线：
+        //   ① 引擎事实表 buildEngineFacts()：把引擎输出归一化为可逐项比对的结构，
+        //      它是算法结论的唯一事实源，AI 回复只能被它核对，不能覆盖它。
+        //   ② 逐项机器核对 verifyAIReply()：AI 回复中每个算法断言都与事实表比对，
+        //      命中不一致立即在界面显式标注「AI 幻觉，以引擎为准」。
+        //
+        // 设计要点：事实表是**封闭白名单**——只有引擎确实产出的字段才会进表，
+        // 引擎未产出（如无城门、无替卦）的字段不进表，也就不存在"可核对项"，
+        // 从而杜绝"引擎没结论但 AI 编了一个"这种情形。
+        // 山名匹配字符集：不再硬编码完整二十四山，改为运行时从引擎输出动态收集。
+        // 理由：二十四山属术数命名，完整清单应由引擎定义；前端固化一份等于自建知识库，
+        //      引擎若增删山名（不同流派有异）即失配。
+        // 收集范围仅限本次引擎输出的 sitMountain / facingMountain / 各宫山名。
+        function collectMountainChars(facts) {
+            if (!facts) return '';
+            const set = new Set();
+            const push = v => { if (v) String(v).split('').forEach(ch => set.add(ch)); };
+            push(facts.sitMountain);
+            push(facts.facingMountain);
+            (facts.castleGates || []).forEach(g => { push(g.mountain); push(g.gongName); });
+            const body = [...set].map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('');
+            // 必须包成字符类：否则拼进 '坐' + M + '{1,2}' 会变成
+            // 「坐子午巽坤{1,2}向」这种量词作用于整个序列的错义模式，匹配恒为空。
+            return body ? '[' + body + ']' : '';
         }
+        function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+        /**
+         * 由引擎排盘结果构建「算法事实表」。
+         * 这是算法结论的唯一事实源：verifyAIReply 只认这张表。
+         * 引擎未产出的字段一律不入表（封闭白名单原则）。
+         */
+        function buildEngineFacts(hData) {
+            const facts = {
+                orientationText: '',
+                mingGua: '',
+                mingGroup: '',
+                houseGua: '',
+                houseGroup: '',
+                mingHouseMatch: '',
+                yunLabel: '',
+                yunNumber: null,
+                yunStar: null,
+                sitMountain: '',
+                facingMountain: '',
+                guaType: '',
+                formation: '',
+                palaceStars: {},   // gongName -> {yun, shan, xiang, year, relation, state}
+                palaceOrder: [],
+                castleGates: [],   // {role, gongName, yunStar, flyDirection, arrivalStar, status}
+                hasUsableGate: null,
+                luckyDirections: [],
+                unluckyDirections: [],
+                combinations: [],
+                flowYearPlate: null,
+            };
+            if (!hData) return facts;
+
+            const x = hData.xuankong || {};
+            const b = hData.bazhai || {};
+            const p = x.period || {};
+
+            facts.orientationText = (hData.inputSummary && hData.inputSummary.orientationText) || hData.sitting_facing || '';
+            facts.yunLabel = p.label || '';
+            facts.yunNumber = Number.isFinite(p.yun) ? p.yun : null;
+            facts.yunStar = Number.isFinite(p.yunStar) ? p.yunStar : null;
+            facts.sitMountain = x.sitMountain || '';
+            facts.facingMountain = x.facingMountain || '';
+            facts.guaType = x.guaType || '';
+            facts.formation = x.formation || '';
+
+            if (Array.isArray(x.palaces)) {
+                // 固定按洛书九宫顺序，保证核对结果与界面展示一致
+                const ORDER = [4, 9, 2, 3, 5, 7, 8, 1, 6];
+                const byGong = {};
+                x.palaces.forEach(pl => { byGong[pl.gong] = pl; });
+                ORDER.forEach(g => {
+                    const pl = byGong[g];
+                    if (!pl) return;
+                    // 【第四阶段·修正】键一律取引擎的 pl.gong（洛书宫数，唯一且稳定），
+                    // 不再用「剥掉 name 末尾洛书数」这种自行推导的字符串处理。
+                    // 理由：name 是展示用文案（形如「巽四」），任何解析都可能随文案变化而失效；
+                    //     gong 是引擎的语义主键，直接用才叫"以引擎为准"。
+                    const key = String(pl.gong);
+                    // 【第四阶段·修正】方位映射不再由前端维护 _GONG_ALIAS 硬编码表，
+                    // 改为直接使用引擎给的 pl.direction（如「东南」「北」「中」）。
+                    // 别名仅用于把 AI 可能的多种写法并到同一宫，来源仍以引擎 direction 为准。
+                    facts.palaceStars[key] = {
+                        gong: g,
+                        // 引擎权威方位字段
+                        direction: pl.direction || '',
+                        // 引擎展示名（仅作正则匹配的可读形态，不参与任何推导）
+                        rawName: String(pl.name || ''),
+                        // 从引擎 name 取出宫名单字，供正则按「巽宫/巽方」匹配；
+                        // 仍只用于**匹配**，不用于推断方位——方位一律读 direction。
+                        gongChar: (String(pl.name || '').match(/[坎离震巽坤艮乾兑中]/) || [''])[0],
+                        yun: pl.yunStar,
+                        shan: pl.shanStar,
+                        xiang: pl.xiangStar,
+                        year: (pl.yearStar == null ? null : pl.yearStar),
+                        relation: pl.shanXiangRelation || '',
+                        state: pl.yunStarState || '',
+                    };
+                    facts.palaceOrder.push(key);
+                });
+            }
+
+            const cg = x.castleGate;
+            if (cg && Array.isArray(cg.candidates)) {
+                facts.hasUsableGate = cg.hasUsableGate === true;
+                facts.castleGates = cg.candidates.map(c => ({
+                    role: c.role || '',
+                    gongName: c.gongName || '',
+                    mountain: c.mountain || '',
+                    yunStar: c.yunStar,
+                    flyDirection: c.flyDirection || '',
+                    arrivalStar: c.arrivalStar,
+                    status: c.status || '',
+                }));
+            }
+
+            if (Array.isArray(x.combinations)) {
+                facts.combinations = x.combinations.map(c => c.name).filter(Boolean);
+            }
+
+            const fp = x.flowStars && x.flowStars.yearPlate;
+            if (fp) facts.flowYearPlate = { year: fp.year, centerStar: fp.centerStar, starName: fp.starName || '' };
+
+            if (b.mingGua) { facts.mingGua = b.mingGua; facts.mingGroup = b.mingGroup || ''; }
+            if (b.houseGua) { facts.houseGua = b.houseGua; facts.houseGroup = b.houseGroup || ''; }
+            facts.mingHouseMatch = b.match || '';
+            facts.luckyDirections = (b.luckyDirections || []).map(d => ({ direction: d.direction, label: d.label || '', gua: d.gua || '', luck: d.luck || '' }));
+            facts.unluckyDirections = (b.unluckyDirections || []).map(d => ({ direction: d.direction, label: d.label || '', gua: d.gua || '', luck: d.luck || '' }));
+
+            return facts;
+        }
+
+        // 【第四阶段·修正】此处原有的 _GONG_ALIAS / _STAR_LABEL 已删除。
+        //
+        // 删除原因（属"用 AI 自己的知识覆盖底层算法"）：
+        //   _GONG_ALIAS  —— 前端自行维护的「九宫→方位」映射表。引擎已在 palaces[].direction
+        //                   给出权威方位，无需第二套推导。两套并存时若不一致，
+        //                   会出现「AI 说对了却被判幻觉」的错误拦截。
+        //   _STAR_LABEL  —— 「一白/二黑/…」等星名属术数知识，本应来自引擎。
+        //                   前端硬编码等于自行充当知识库，引擎若改称谓即失配。
+        //
+        // 星名现改由 mingyu-core 运星名接口按数字取，或在展示层直接用引擎原值。
+        const _CN_DIGIT = { 1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六', 7: '七', 8: '八', 9: '九' };
+        // 纯语言工具：中文数字 ↔ 阿拉伯数字。不含任何术数知识，不做方位或星名推断。
+        function cnToNum(c) {
+            if (typeof c === 'number') return c;
+            return ({ 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 })[String(c || '')] ?? null;
+        }
+
+        /**
+         * 逐项机器核对：把 AI 回复中所有算法断言与引擎事实表比对。
+         * 只报「与引擎冲突」的项，不报 AI 未提及的项——AI 没说话不算错。
+         */
+        function verifyAIReply(reply, facts) {
+            // 注意：window 在部分调用上下文（如 Node 测试沙箱）可能不存在，
+            // 故此处不直接引用 window.__engineFacts。
+            let f = facts;
+            if (!f && typeof window !== 'undefined' && window) f = window.__engineFacts;
+            if (!reply || !f) return { checked: 0, violations: [] };
+            const text = String(reply);
+            const violations = [];
+            const add = (field, claimed, truth) => {
+                violations.push({ field, claimed, truth });
+            };
+
+            // ---- 1. 山向（二十四山）----
+            // 匹配字符集来自引擎本次输出的山名（见 collectMountainChars），非前端固化清单。
+            if (f.orientationText && f.sitMountain) {
+                const _M = collectMountainChars(f);
+                if (_M) {
+                    const claims = [...new Set(text.match(
+                        new RegExp('坐' + _M + '{1,2}向' + _M + '{1,2}', 'g')
+                    ) || [])];
+                    const wrong = claims.filter(c => c !== f.orientationText);
+                    if (wrong.length) add('坐向山向', wrong.join('、'), f.orientationText);
+                }
+            }
+
+            // ---- 2. 命卦 / 宅卦 ----
+            if (f.mingGua) {
+                const guaClaims = text.match(/命卦[:：是为是为\s]*([坎艮震巽离坤乾])/g) || [];
+                const wrong = guaClaims.filter(c => !c.includes(f.mingGua));
+                if (wrong.length) add('命卦', wrong.join('、'), f.mingGua);
+            }
+            if (f.houseGua) {
+                const houseClaims = text.match(/宅卦[:：是为\s]*([坎艮震巽离坤乾])/g) || [];
+                const wrong = houseClaims.filter(c => !c.includes(f.houseGua));
+                if (wrong.length) add('宅卦', wrong.join('、'), f.houseGua);
+            }
+
+            // ---- 3. 运数与运盘星 ----
+            if (f.yunNumber != null) {
+                const yunClaims = text.match(/([一二三四五六七八九])运/g) || [];
+                const wrong = yunClaims.filter(c => cnToNum(c[0]) !== f.yunNumber);
+                if (wrong.length) add('运数', [...new Set(wrong)].join('、'), `${_CN_DIGIT[f.yunNumber]}运`);
+            }
+            if (f.yunStar != null) {
+                // 形如「九运运盘九星入中」「运星9入中」
+                const midClaims = text.match(/运(?:盘)?星?\s*([一二三四五六七八九1-9])\s*入中/g) || [];
+                const wrong = midClaims.filter(c => cnToNum(c.match(/([一二三四五六七八九1-9])/)[1]) !== f.yunStar);
+                if (wrong.length) add('运星入中', [...new Set(wrong)].join('、'), `${f.yunStar} 入中（引擎）`);
+            }
+
+            // ---- 4. 卦型与局型：直接全等比对，不预设枚举值域 ----
+            // 【第四阶段·修正】原先硬编码 guaTypes=['正卦','下卦','上卦','全卦']、
+            // forms=['旺山旺向','上山下水','双星到坐','双星到向'] 两个清单，
+            // 均为凭玄空记忆手写。实测穷举 2880 个盘面，引擎 guaType 只产出「下卦」一种，
+            // 即清单中另三个值引擎根本不产生——等于用虚构值域去校验权威输出。
+            // 现改为：从 AI 文本中抓出候选值，凡与引擎本次输出全等不符即记冲突。
+            // 引擎为空时不做核对（无基准可比），而不是用默认清单去比。
+            const matchAgainstEngine = (label, engineValue, pattern) => {
+                if (!engineValue) return;
+                const claims = text.match(pattern) || [];
+                const wrong = claims.filter(c => !c.includes(engineValue));
+                if (wrong.length) add(label, [...new Set(wrong)].join('、'), engineValue);
+            };
+            // 候选值取「任意汉字串」，交由全等判定裁决——不预先知道它该是什么。
+            matchAgainstEngine('卦型', f.guaType, /卦型\s*[:：是为]?\s*([一-龥]{2,6})/g);
+            matchAgainstEngine('局型', f.formation, /(?:局型|格局)\s*[:：是为]?\s*([一-龥]{2,6})/g);
+
+            // ---- 5. 九宫飞星数字（核心：每盘 27 个数字）----
+            // 【第四阶段·修正】匹配用的方位字符集不再来自前端硬编码表 _GONG_ALIAS，
+            // 改为从**引擎本次输出**里现场收集：gongChar（宫名单字）+ direction（权威方位）。
+            // 这样 AI 写「巽宫」或「东南」都能命中同一宫，且宫名/方位来源全是引擎。
+            const gongChars = new Set();
+            const gongDirs = new Set();
+            Object.values(f.palaceStars).forEach(p => {
+                if (p.gongChar) gongChars.add(p.gongChar);
+                if (p.direction) gongDirs.add(p.direction);
+            });
+            // 方位名按长度降序拼接：否则「东北」会先被「东」抢先命中而错切。
+            // 这是字符串匹配的技术性排序，不是术数判断。
+            const altList = [...new Set([...gongChars, ...gongDirs])]
+                .sort((a, b) => b.length - a.length)
+                .map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                .join('|');
+            const altLookup = new Map();
+            Object.values(f.palaceStars).forEach(p => {
+                if (p.gongChar) altLookup.set(p.gongChar, p);
+                if (p.direction) altLookup.set(p.direction, p);
+            });
+
+            if (altList) {
+                // 方位与数字都用具名捕获组，避免"第几个捕获组"随正则增删括号而错位。
+                // （曾用 m[2] 取数字，改写正则时方位部分变成非捕获组，索引失效且静默漏检。）
+                const FIELDS = [
+                    { re: new RegExp('(?<alt>' + altList + ')(?:宫|方|位)?\\s*山(?:星)?\\s*(?<n>[一二三四五六七八九1-9])', 'g'), fk: 'shan', nm: '山星' },
+                    { re: new RegExp('(?<alt>' + altList + ')(?:宫|方|位)?\\s*向(?:星)?\\s*(?<n>[一二三四五六七八九1-9])', 'g'), fk: 'xiang', nm: '向星' },
+                    { re: new RegExp('(?<alt>' + altList + ')(?:宫|方|位)?\\s*运(?:盘)?(?:星)?\\s*(?<n>[一二三四五六七八九1-9])', 'g'), fk: 'yun', nm: '运星' },
+                ];
+                FIELDS.forEach(({ re, fk, nm }) => {
+                    let m;
+                    while ((m = re.exec(text)) !== null) {
+                        const g = m.groups || {};
+                        const fact = altLookup.get(g.alt);
+                        if (!fact) continue;
+                        const claimedNum = cnToNum(g.n);
+                        const truth = fact[fk];
+                        if (claimedNum == null || truth == null) continue;
+                        if (claimedNum !== Number(truth)) {
+                            add(`${fact.gongChar || g.alt}宫${nm}`, g.n, `${truth}（引擎）`);
+                        }
+                    }
+                });
+            }
+
+            // ---- 6. 山向生克关系 ----
+            // 关系词表来自引擎本次 palaces[].shanXiangRelation 的实际取值去重，
+            // 不使用前端手写清单。
+            const relations = [...new Set(
+                Object.values(f.palaceStars).map(p => p.relation).filter(Boolean)
+            )].map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+            if (relations.length) {
+                for (const fact of Object.values(f.palaceStars)) {
+                    if (!fact.relation || !fact.gongChar) continue;
+                    const re = new RegExp(fact.gongChar + '(?:宫|方|位)?[^。；\\n]{0,12}?(?:生克关系)?\\s*[:：]?\\s*(' + relations.join('|') + ')');
+                    const m = text.match(re);
+                    if (m && m[0].indexOf(fact.relation) < 0) {
+                        add(`${fact.gongChar}宫山向生克`, m[1], fact.relation);
+                    }
+                }
+            }
+
+            // ---- 7. 城门判定：直接采用引擎布尔结论 ----
+            // 【第四阶段·修正】原先用 /可用|合/.test(status) 从中文状态串里"猜"可用性，
+            // 属对引擎语义的二次解释。实测：hasUsableGate=true 时两个候选的 status
+            // 有 3 种合法组合（一个可用一个不可用亦为真），
+            // 说明能否用是「盘面整体」结论，不能按单个候选各自判定。
+            // 现改为：只核对 AI 对单个城门方位的可用性断言，
+            // 其真值一律取自引擎 hasUsableGate 布尔字段。
+            if (f.castleGates.length && f.hasUsableGate != null) {
+                for (const g of f.castleGates) {
+                    if (!g.role) continue;
+                    const names = [g.gongName, g.mountain].filter(Boolean);
+                    if (!names.length) continue;
+                    const nameAlt = [...new Set(names)]
+                        .map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                        .join('|');
+                    // 判定词与真值均不预设：抓到任何「可用/不可用/得旺/不得旺」类断言即核对。
+                    const re = new RegExp(
+                        '(?:' + nameAlt + ')[^。；\\n]{0,16}?城[门][^。；\\n]{0,12}?(得旺可用|不得旺不可用|可用|不可用|得旺|不得旺)'
+                        + '|(?:城[门])[^。；\\n]{0,12}?(?:在|于)?\\s*(?:' + nameAlt + ')[^。；\\n]{0,12}?(得旺可用|不得旺不可用|可用|不可用|得旺|不得旺)',
+                        'g'
+                    );
+                    let m;
+                    while ((m = re.exec(text)) !== null) {
+                        const said = m[1];
+                        const saidUsable = !/不可用|不得旺/.test(said);
+                        if (saidUsable !== f.hasUsableGate) {
+                            add(`${g.role}${g.gongName}`, said,
+                                f.hasUsableGate ? '引擎：本盘有可用城门' : '引擎：本盘无合格城门（hasUsableGate=false）');
+                        }
+                    }
+                }
+            }
+
+            // ---- 8. 四吉四凶位（八宅）----
+            // 【第四阶段·修正】吉凶真值改用引擎的 d.luck 字段（"吉"/"凶"），
+            // 不再用前端硬编码的「吉/凶」字面量自行判定。
+            // 引擎还给了 d.label（如「生气」「五鬼」）与 d.gua，对照表一并展示，
+            // 使用户能看到依据的是哪一条。
+            const dirTruth = new Map();
+            f.luckyDirections.forEach(d => { if (d.direction) dirTruth.set(d.direction, { luck: '吉', label: d.label || '', gua: d.gua || '' }); });
+            f.unluckyDirections.forEach(d => { if (d.direction) dirTruth.set(d.direction, { luck: '凶', label: d.label || '', gua: d.gua || '' }); });
+            if (dirTruth.size) {
+                // 方位名按长度降序：否则「东北」会先命中「东」而被切错。
+                // 纯粹是字符串匹配的技术性排序，与术数无关。
+                const dirList = [...dirTruth.keys()]
+                    .sort((a, b) => b.length - a.length)
+                    .map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                    .join('|');
+                // 罗列句引导词：仅用于识别"在罗列多个方位"而非"逐个断言"，
+                // 不含任何吉凶知识。
+                const LIST_HINT = /(四吉位|四凶位|吉位包括|凶位包括|吉方为|凶方为|吉方在|凶方在|吉位在|凶位在|八吉|八凶)/;
+                // 判定词分两类，来源是引擎 label 与 luck 的字面族，非我自拟
+                const LUCKY_WORDS = /(大吉|吉位|吉方|为吉|吉)/;
+                const UNLUCKY_WORDS = /(大凶|凶位|凶方|为凶|凶)/;
+                for (const seg of text.split(/[。；！？\n]+/)) {
+                    const isList = LIST_HINT.test(seg)
+                        || (seg.match(new RegExp('(' + dirList + ')', 'g')) || []).length >= 3;
+                    if (isList) continue;
+                    const re = new RegExp('(' + dirList + ')(?:方|位)?', 'g');
+                    let m;
+                    while ((m = re.exec(seg)) !== null) {
+                        const dir = m[1];
+                        const t = dirTruth.get(dir);
+                        if (!t) continue;
+                        const after = seg.slice(m.index, m.index + dir.length + 14);
+                        const isL = LUCKY_WORDS.test(after);
+                        const isU = UNLUCKY_WORDS.test(after);
+                        const truthText = `${t.luck}（${t.label || t.gua || '引擎未给名称'}）`;
+                        if (t.luck === '吉' && isU) add(`${dir}方位`, after.match(UNLUCKY_WORDS)[0], truthText);
+                        else if (t.luck === '凶' && isL) add(`${dir}方位`, after.match(LUCKY_WORDS)[0], truthText);
+                    }
+                }
+            }
+
+            // ---- 9. 命宅关系 ----
+            // 值域同样交给引擎：f.mingHouseMatch 是引擎原值（如"相合"），
+            // 候选词从引擎可能取值出发，但仍以"AI 所说是否等于引擎原值"裁决。
+            if (f.mingHouseMatch) {
+                const claims = text.match(/命宅(?:关系)?\s*[:：是为]?\s*([一-龥]{2,4})/g) || [];
+                const wrong = claims.filter(c => c.indexOf(f.mingHouseMatch) < 0);
+                if (wrong.length) add('命宅关系', [...new Set(wrong)].join('、'), f.mingHouseMatch);
+            }
+
+            return { checked: violations.length, violations };
+        }
+
+        /**
+         * 核对结果渲染：在 AI 回复下方显式列出幻觉项。
+         * 设计原则——不静默丢弃 AI 的错误，也不静默相信，而是把冲突摊在界面上，
+         * 让用户看到「AI 说的」与「引擎算的」哪个为准。
+         */
+        function renderAIHallucinationReport(result) {
+            if (!result || !result.violations || !result.violations.length) return '';
+            const rows = result.violations.map(v =>
+                `<tr><td>${escHtml(String(v.field))}</td>`
+                + `<td style="color:#ff8080;">${escHtml(String(v.claimed))}</td>`
+                + `<td style="color:#7fe08a;">${escHtml(String(v.truth))}</td></tr>`
+            ).join('');
+            return `<div class="hallucination-report">`
+                + `<div class="hallucination-title">⚠️ 幻觉拦截：AI 解读中有 ${result.violations.length} 处与引擎排盘不一致</div>`
+                + `<div class="hallucination-note">下表左列是 AI 的说法，中列是引擎的算法结论。<b>以引擎为准</b>，AI 说错的部分已标记，请勿采信。</div>`
+                + `<table class="hallucination-table"><thead><tr><th>字段</th><th>AI 表述（错误）</th><th>引擎结论（正确）</th></tr></thead><tbody>${rows}</tbody></table>`
+                + `</div>`;
+        }
+
 
         async function initCamera() {
             try {
@@ -1128,6 +1525,11 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                 const hData = horosaData.data ? horosaData.data : horosaData;
                 const meta = horosaData.meta || {};
 
+                // 【算法层防幻觉】引擎排盘一返回，立即把结果冻结为「算法事实表」。
+                // 这是本轮所有 AI 解读的唯一比对基准；此后任何 AI 文本都只能被它核对，
+                // 不能反过来修改它。事实表缺失则本轮不做核对（宁可不拦，不错拦）。
+                window.__engineFacts = buildEngineFacts(hData);
+
                 // 从 mingyu-core 提取结构化提示词
                 const mingyuPrompt = hData.prompt || "";
                 const evidencePrompt = hData.evidencePromptText || "";
@@ -1188,11 +1590,18 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                 
                 const answerStyle = localStorage.getItem('ANSWER_STYLE') === 'pro' ? 'pro' : 'plain';
                 const styleLine = answerStyle === 'plain'
-                    ? '【解读风格】白话模式：读者是零基础业主，请严格按铁律M用生活语言表达，术语必须带白话解释。'
+                    ? '【解读风格】白话模式：读者是零基础业主，请严格按铁律O用生活语言表达，术语必须带白话解释。'
                     : '【解读风格】专业模式：读者具备堪舆基础，可使用完整术语体系。';
                 const memBlock = memoryText() ? `\n${memoryText()}\n（若记忆与本轮实测冲突，以本轮为准并指出差异。）` : '';
                 const flowNote = reqBody.flowYear ? `\n【流年】${reqBody.flowYear}年紫白年盘已由引擎排出（排盘面板各宫"年星"行），分析当年引动时以该盘为准，禁止自行重算。` : '';
-                const promptText = `【勘测方式】${surveyText()}\n${styleLine}\n理气排盘数据与结构化证据：\n${evidencePrompt}\n\n详细排盘信息：\n${mingyuPrompt}${flowNote}${memBlock}\n请结合上述八方位序列${mapBase64?'及外局地图':''}进行整体空间堪舆分析，给出断语并可向我提问。请全程使用简体中文回答。`;
+                // 【第四阶段·提示词层】在算法数据紧邻处再插一道"只读"声明。
+                // 位置很关键：铁律在消息开头，数据在消息中间。模型注意力会随距离衰减，
+                // 把约束重复在数据旁边，可显著降低"看到数字就顺手复述/推算"的倾向。
+                const readonlyNote = '【只读声明】以上排盘数据由算法引擎（mingyu-core）确定性算出，是唯一算法事实源，已完整显示在界面上。\n'
+                    + '你必须把以上数据当作只读结果：不要复述其中的数字，不要做换算、比较、推导或补充。\n'
+                    + '不要输出任何术数数字（星数、洛书数、运数、卦数、局数皆不可出现）。若某项数据在以上内容中不存在，'
+                    + '说明"引擎未给出该项，无法分析"，绝不允许自行推断一个值来填补。\n';
+                const promptText = `【勘测方式】${surveyText()}\n${styleLine}\n${readonlyNote}\n理气排盘数据与结构化证据：\n${evidencePrompt}\n\n详细排盘信息：\n${mingyuPrompt}${flowNote}${memBlock}\n请结合上述八方位序列${mapBase64?'及外局地图':''}进行整体空间堪舆分析，给出断语并可向我提问。你的任务是描述图中可见的形煞并给出可执行建议，不要重复排盘面板已显示的数字。请全程使用简体中文回答。`;
 
                 // 八方位定向序列：每帧标注罗盘方位（与九宫直接映射），外局图放最后
                 const frameDesc = frames.map((f, i) => `图${i + 1}：【${f.dir}】(${f.heading.toFixed(0)}°)`).join('；');
@@ -1489,7 +1898,15 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
                     }
                 }
                 chatHistory.push({ role: 'assistant', content: fullReply });
-                if (!fallbackUsed) verifyAIReply(fullReply); // 兜底输出的思考流含探索性表述，跳过机器核对避免误报
+                // 【算法层防幻觉】逐项核对 AI 回复中的算法断言。
+                // 兜底路径下 fullReply 是思考流，含探索性表述会大量误报，故跳过。
+                if (!fallbackUsed) {
+                    const hr = verifyAIReply(fullReply);
+                    if (hr && hr.violations.length) {
+                        appendLog(`⚠️ 幻觉拦截：AI 解读中有 ${hr.violations.length} 处与引擎排盘不一致，已在回复下方列明。以引擎为准。`, 'system-log', true);
+                        aiDiv.innerHTML += renderAIHallucinationReport(hr);
+                    }
+                }
                 chatInputArea.style.display = 'flex';
                 setTimeout(() => chatInput.focus(), 100);
             } catch (err) {
@@ -1545,7 +1962,7 @@ M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔�
             chatInputArea.style.display = 'none';
             chatHistory.push({
                 role: 'user',
-                content: [{ type: 'text', text: `【第${analysisRound}轮补拍 · 八方位定向】${surveyText()}。本轮序列：${frameDesc}${missedNote}。请结合此前各轮观察、记忆与排盘数据重新整合分析；若仍不足可再次提出【重拍请求】。请全程使用简体中文回答，并保持此前选择的解读风格（白话/专业）。` },
+                content: [{ type: 'text', text: `【第${analysisRound}轮补拍 · 八方位定向】${surveyText()}。本轮序列：${frameDesc}${missedNote}。请结合此前各轮观察、记忆与排盘数据重新整合分析；若仍不足可再次提出【重拍请求】。请全程使用简体中文回答，并保持此前选择的解读风格（白话/专业）。\n【只读提醒】排盘数字仍以引擎面板为唯一准据，不要复述或推算术数数字；本轮只描述新拍到的可见形煞。` },
                     ...frames.map(f => ({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${f.b64}` } }))]
             });
             appendLog('🔮 补拍整合分析中…', 'system-log');
