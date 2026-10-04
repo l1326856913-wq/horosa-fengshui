@@ -1002,29 +1002,16 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 const decoder = new TextDecoder("utf-8");
                 let gemBuf = '';
                 let sseBuf = '';
-                let reasoningDiv = null;
                 let reasoningSeen = false;
                 let fallbackUsed = false;
-                // 思考区折叠 + 渲染节流：避免长思考刷屏与 O(n²) innerHTML 重渲染卡顿
-                let reasoningFull = '', reasoningBuf = '', contentBuf = '', flushTimer = null, contentStarted = false;
-                const collapseReasoning = () => {
-                    if (!reasoningDiv) return;
-                    reasoningDiv.innerHTML = '<b>【思考完成 · 已折叠】</b> <span style="text-decoration:underline;cursor:pointer">点击展开思考过程</span>';
-                    reasoningDiv.style.cursor = 'pointer';
-                    reasoningDiv.onclick = () => {
-                        const open = reasoningDiv.dataset.open !== '1';
-                        reasoningDiv.dataset.open = open ? '1' : '0';
-                        reasoningDiv.innerHTML = open
-                            ? '<b>【思考过程】</b><br>' + escHtml(reasoningFull).replace(/\n/g, '<br>')
-                            : '<b>【思考完成 · 已折叠】</b> <span style="text-decoration:underline;cursor:pointer">点击展开思考过程</span>';
-                        logPanel.scrollTop = logPanel.scrollHeight;
-                    };
+                // 思考不实时展示（用户方案）：思考期间每10秒心跳提示，正文开始才出解读
+                let reasoningFull = '', contentBuf = '', flushTimer = null, contentStarted = false;
+                let thinkTimer = null, thinkStart = 0, heartbeatDiv = null;
+                const stopThinkingHint = (doneText) => {
+                    if (thinkTimer) { clearInterval(thinkTimer); thinkTimer = null; }
+                    if (heartbeatDiv && doneText) heartbeatDiv.innerHTML = doneText;
                 };
                 const flushBuffers = () => {
-                    if (reasoningBuf && !contentStarted && reasoningDiv) {
-                        reasoningDiv.innerHTML += escHtml(reasoningBuf).replace(/\n/g, '<br>');
-                        reasoningBuf = '';
-                    }
                     if (contentBuf) {
                         aiDiv.innerHTML += escHtml(contentBuf).replace(/\n/g, '<br>');
                         contentBuf = '';
@@ -1070,18 +1057,21 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                                 const delta = (data.choices && data.choices[0] && data.choices[0].delta) || {};
                                 // 思考型模型（GLM-5.x 等）先流 reasoning_content，实时灰显，避免界面"假卡住"
                                 if (delta.reasoning_content) {
-                                    if (!reasoningDiv) {
-                                        reasoningDiv = appendLog('<span class="gold" style="font-size:0.85rem">【思考中】</span><span style="font-size:0.75rem;color:#8a8a8a">（模型内部推理，可能中英混杂，以正文为准）</span>', 'assistant', true);
-                                        reasoningDiv.style.color = '#9a9a9a';
-                                        reasoningDiv.style.fontSize = '0.85rem';
+                                    if (!reasoningSeen) {
+                                        // 思考不实时展示：仅心跳提示，避免英文推理流刷屏
+                                        heartbeatDiv = appendLog('🤔 正在思考中…', 'assistant');
+                                        thinkStart = Date.now();
+                                        thinkTimer = setInterval(() => {
+                                            if (!heartbeatDiv) return;
+                                            const sec = Math.round((Date.now() - thinkStart) / 1000);
+                                            heartbeatDiv.innerHTML = `🤔 正在思考中…（已 ${sec} 秒）`;
+                                        }, 10000);
                                     }
                                     reasoningSeen = true;
-                                    reasoningFull += delta.reasoning_content;
-                                    reasoningBuf += delta.reasoning_content;
-                                    scheduleFlush();
+                                    reasoningFull += delta.reasoning_content; // 仅内部留存（兜底输出用），不展示
                                 }
                                 if (delta.content) {
-                                    if (!contentStarted) { contentStarted = true; collapseReasoning(); }
+                                    if (!contentStarted) { contentStarted = true; stopThinkingHint('✅ 思考完成，正在生成解读…'); }
                                     fullReply += delta.content;
                                     contentBuf += delta.content;
                                     scheduleFlush();
@@ -1099,6 +1089,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 if (!fullReply) {
                     // GLM 特有：深度思考占满输出额度，只产出思考没有正文 → 降思考强度重试一次
                     if (provider === 'glm' && reasoningSeen && opts.reasoningEffort !== 'low') {
+                        stopThinkingHint('⚠️ 首轮思考未产出正文，正在以低强度思考重试…');
                         appendLog('⚠️ GLM 只输出了思考过程、未给出正文（max 级深度思考占满输出额度）。已自动将思考强度降为 low 重试一次…', 'system-log', true);
                         return callAIStream(provider, apiKey, { reasoningEffort: 'low' });
                     }
@@ -1108,7 +1099,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                         fullReply = reasoningFull;
                         fallbackUsed = true;
                         aiDiv.innerHTML += escHtml(fullReply).replace(/\n/g, '<br>'); // 思考内容并入正文展示
-                        if (reasoningDiv) { reasoningDiv.style.display = 'none'; } // 避免重复展示
+                        stopThinkingHint('⚠️ 思考完成但未生成正文，已将思考内容作为解读输出（见下方）');
                     } else {
                         const why = '未返回任何内容（可能模型无权限、不支持图片输入或思考被限流）。可在设置中更换 GLM 模型名（如 glm-5v-turbo）或改用其他服务商后重试。';
                         appendLog(`⚠️ ${provider.toUpperCase()} ${why}`, 'system-log', true);
@@ -1122,6 +1113,7 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 if (typeof streamTimedOut !== 'undefined' && streamTimedOut) {
                     err.message = 'AI 响应卡住超过 45 秒已中止，请点🔄重试；若反复出现请更换服务商或稍后再试';
                 }
+                stopThinkingHint('⚠️ 思考中断：出现错误（见下方红字）');
                 aiDiv.innerHTML += `<br><span style="color:red">错误: ${err.message}</span>`;
             }
             return fullReply;
