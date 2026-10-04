@@ -186,6 +186,29 @@
         .luopan-note { font-size: 0.75rem; color: #9a9a9a; margin-top: 6px; }
         .star-year { color: #4cd7ff; }
 
+        /* 第二阶段第 8/9/10 项：测量不确定性、运界修正、口径声明 */
+        .luopan-warn {
+            font-size: 0.8rem; line-height: 1.55; margin: 0 0 6px; padding: 7px 10px;
+            background: rgba(255, 149, 0, 0.12); border: 1px solid rgba(255, 159, 0, 0.5);
+            border-left: 3px solid #ff9f0a; border-radius: 6px; color: #ffd8a8;
+        }
+        .luopan-warn b { color: #ffb340; }
+        .luopan-fix {
+            font-size: 0.78rem; line-height: 1.55; margin: 0 0 6px; padding: 6px 10px;
+            background: rgba(76, 215, 255, 0.09); border: 1px solid rgba(76, 215, 255, 0.32);
+            border-left: 3px solid #4cd7ff; border-radius: 6px; color: #b8ecff;
+        }
+        .luopan-fix b { color: #4cd7ff; }
+        .luopan-method {
+            font-size: 0.73rem; line-height: 1.5; margin-top: 6px; padding: 5px 9px;
+            background: rgba(160, 160, 160, 0.08); border: 1px dashed rgba(160, 160, 160, 0.35);
+            border-radius: 6px; color: #a8a8a8;
+        }
+        .luopan-meta-sub {
+            font-size: 0.74rem; color: #8fb8c8; margin: 0 0 6px;
+            font-family: 'Cascadia Code', Consolas, monospace;
+        }
+
         .advice-panel, .remind-panel {
             border: 1px solid rgba(212,175,55,0.4); border-radius: 12px; padding: 10px 12px;
             background: rgba(212,175,55,0.06); margin: 4px 0 10px;
@@ -236,6 +259,13 @@
             </div>
             <div class="input-group"><label>GLM 模型名（可选，默认 glm-5.3-flash；若报"模型不存在"可改 glm-5v-turbo / glm-4v-plus-0111）</label><input type="text" id="key-glm-model" placeholder="glm-5.3-flash"></div>
             <div class="input-group"><label>住宅建造年或起运年 (公历，玄空排盘必需)</label><input type="number" id="input-house-year" placeholder="例如：2015"></div>
+            <div class="input-group"><label>住宅建造月/日 (可选，但强烈建议填写)</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="number" id="input-house-month" min="1" max="12" placeholder="月 1-12" style="flex:1;">
+                    <input type="number" id="input-house-day" min="1" max="31" placeholder="日 1-31" style="flex:1;">
+                </div>
+                <div style="font-size:0.72rem;color:#888;margin-top:4px;">三元九运按<b>立春</b>换运（每年 1/1~立春约 34 天属上一年运界）。仅填年份时，若住宅恰建于该区间可能被误判入下一运，整张飞星盘作废。</div>
+            </div>
             <div class="input-group"><label>出生日期 (公历，八宅必需；1-2月出生者必须准确到日，以判定立春年界)</label><input type="date" id="input-birth-date"></div>
             <div class="input-group"><label>性别 (八宅必需)</label>
                 <select id="input-gender" style="width: 100%; background: #222; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 8px;">
@@ -331,7 +361,6 @@ J. 记忆调用：输入可能带有【历史勘测记忆】，请像复诊的�
 K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引用系统给定的坐向、运、局型、命卦等关键结论，与界面展示的排盘一致），再进入图像辅助解读；辅助解读中涉及理气的表述必须与排盘一致。
 L. 语言：正式回答全程使用简体中文（专业术语首次出现可附英文原名）；内部思考流用什么语言不影响此要求。
 M. 白话表达（默认要求）：正式回答禁止堆砌术语与文言腔。每条结论按"哪个位置→现在的情况→对你的影响→建议怎么做"展开；必须出现的专业词（如五黄、伏吟、当运）首次出现时用括号一句白话解释（例：五黄——传统上最需避忌的凶星，此年此位不宜动土）；多用"你""靠窗那面墙""进门右手边"等具体指代，少用"宅主""此宅"。仅在输入标注【解读风格】专业模式时，才可使用完整术语体系。
-K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引用系统给定的坐向、运、局型、命卦等关键结论，与界面展示的排盘一致），再进入图像辅助解读；辅助解读中涉及理气的表述必须与排盘一致。
 你的分析流程必须极其专业，并分步骤与用户互动：
 1. 观察并抛出断语：结合提供的绝对理气数据（坐向、星盘），指出图中的主要煞气或吉位。
 2. 留白与互动：在首次分析结尾，主动就图中不确定的形煞向用户提问。
@@ -362,6 +391,8 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             localStorage.setItem('BIRTH_DATE', document.getElementById('input-birth-date').value);
             localStorage.setItem('GENDER', document.getElementById('input-gender').value);
             localStorage.setItem('HOUSE_YEAR', document.getElementById('input-house-year').value);
+            localStorage.setItem('HOUSE_MONTH', document.getElementById('input-house-month').value);
+            localStorage.setItem('HOUSE_DAY', document.getElementById('input-house-day').value);
             settingsModal.style.display = 'none';
         };
 
@@ -374,6 +405,8 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
         document.getElementById('input-birth-date').value = localStorage.getItem('BIRTH_DATE') || '';
         document.getElementById('input-gender').value = localStorage.getItem('GENDER') || '';
         document.getElementById('input-house-year').value = localStorage.getItem('HOUSE_YEAR') || '';
+        document.getElementById('input-house-month').value = localStorage.getItem('HOUSE_MONTH') || '';
+        document.getElementById('input-house-day').value = localStorage.getItem('HOUSE_DAY') || '';
 
         let currentHeading = 0;
         let smoothedHeading = 0;
@@ -405,7 +438,22 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
         function memoryText() {
             const m = loadMemory();
             if (!m.length) return '';
-            return '【历史勘测记忆】' + m.map((r, i) => `第${m.length - i}次(${r.ts})：${r.mode}；${r.orientationText || '坐向未知'}；${r.periodLabel || ''}${r.mingGua ? '，命卦' + r.mingGua : ''}；要点：${r.summary}`).join(' ｜ ');
+            // 【第二阶段第 13 项】注入时标注每条记忆的可信度，让 AI 能自行判断
+            // 该不该采信历史结论——而不是笼统地"像复诊老医师一样回顾既往结论"。
+            return '【历史勘测记忆】\n' + m.map((r, i) => {
+                const parts = [`第${m.length - i}次(${r.ts})：${r.mode}`,
+                    r.orientationText || '坐向未知',
+                    r.periodLabel || ''];
+                if (r.mingGua) parts.push('命卦' + r.mingGua);
+                // 可信度标注：引擎确认状态 + 坐向来源 + 真实度数
+                const trust = [];
+                if (r.verified === false) trust.push('⚠️本条结论未经引擎确认，仅供参考，不得作为推断依据');
+                if (r.mountainConfirmed === false && r.orientationSource) trust.push('坐向' + r.orientationSource);
+                if (r.sitDegree != null) trust.push('sitDegree=' + Number(r.sitDegree).toFixed(1) + '°');
+                if (trust.length) parts.push('【' + trust.join('；') + '】');
+                parts.push('要点：' + r.summary);
+                return parts.filter(Boolean).join('，');
+            }).join('\n');
         }
         document.querySelectorAll('.guide-option[data-env]').forEach(btn => {
             btn.onclick = () => {
@@ -439,13 +487,33 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
         function renderMemory() {
             const m = loadMemory();
             document.getElementById('memory-list').innerHTML = m.length
-                ? m.map(r => `<div class="memory-item"><div class="ts">${r.ts} · ${r.mode}</div><div>${r.orientationText || ''} ${r.periodLabel || ''} ${r.mingGua ? '命卦' + r.mingGua : ''}</div><div style="color:#aaa">要点：${r.summary}</div></div>`).join('')
+                ? m.map(r => {
+                    // 【第二阶段第 13 项】展示记忆可信度，让用户知道哪些结论可直接采信
+                    const trust = [];
+                    if (r.verified === false) trust.push('<span style="color:#ff9f0a">⚠️ 未确认</span>');
+                    if (r.mountainConfirmed === false && r.orientationSource) trust.push(`<span style="color:#4cd7ff">${escHtml(r.orientationSource)}</span>`);
+                    if (r.sitDegree != null) trust.push(`<span style="color:#8fb8c8;font-family:Consolas,monospace">${Number(r.sitDegree).toFixed(1)}°</span>`);
+                    return `<div class="memory-item"><div class="ts">${escHtml(r.ts)} · ${escHtml(r.mode)}</div>`
+                        + `<div>${escHtml(r.orientationText || '')} ${escHtml(r.periodLabel || '')} ${r.mingGua ? '命卦' + escHtml(r.mingGua) : ''}</div>`
+                        + (trust.length ? `<div style="font-size:0.72rem;margin:2px 0">${trust.join(' · ')}</div>` : '')
+                        + `<div style="color:#aaa">要点：${escHtml(r.summary || '')}</div></div>`;
+                }).join('')
                 : '<div style="color:#888">暂无勘测记忆。完成一次堪舆分析后自动留存。</div>';
         }
         let stableTimer = null;
         let lastStableHeading = null;
         let userLat = null, userLng = null;
+        let gpsAccuracy = null;  // GPS 水平精度（米），用于磁偏角可信度提示
+        let gpsError = '';       // 定位失败原因，供排盘前降级判断
         let chatHistory = []; // 保存通用对话历史
+
+        // 【P0-3 修复】室内勘测没有有效坐向来源：环拍时用户朝向任意，
+        // 直接当作坐向排盘会得到一个完全无意义的盘（且被铁律 H 禁止 AI 质疑）。
+        // 因此室内模式必须复用「室外定向」阶段已确认并落盘的坐向。
+        const SITING_KEY = 'HOROSA_SITUATING';
+        function loadSiting() { try { return JSON.parse(localStorage.getItem(SITING_KEY) || 'null'); } catch (e) { return null; } }
+        function saveSiting(rec) { try { localStorage.setItem(SITING_KEY, JSON.stringify(rec)); } catch (e) {} }
+        function clearSiting() { try { localStorage.removeItem(SITING_KEY); } catch (e) {} }
         
         let map;
         let isMapMode = false;
@@ -494,6 +562,9 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             if (mapMarkerStart) mapMarkerStart.remove();
             if (mapMarkerEnd) mapMarkerEnd.remove();
             if (mapPolyline) mapPolyline.remove();
+            // 【P0-3 修复】地图重置意味着真北坐向作废，须同步清掉已落盘的坐向，
+            // 否则室内模式会复用一个已被废弃的旧坐向
+            clearSiting();
             appendLog('🗺️ 地图已重置，请点击建筑物坐山（起点）', 'system-log');
         }
 
@@ -547,6 +618,18 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                     headingVal.innerText = currentHeading.toFixed(1);
                     document.getElementById('mountain-name').innerText = getMountain(currentHeading) + "山(初判)";
 
+                    // 【P0-3 修复】真北坐向一旦确定即落盘，室内模式可直接复用，
+                    // 不必等排盘成功（排盘还依赖建造年/命卦等设置项）
+                    saveSiting({
+                        heading: bearing,
+                        northReference: 'true',
+                        uncertaintyDegrees: mapUncertaintyDeg,
+                        orientationText: null,   // 落盘时未排盘，坐向文字待排盘后回填
+                        sitDegree: null,
+                        magneticDeclinationDegrees: null,
+                        ts: new Date().toLocaleString('zh-CN'),
+                    });
+
                     appendLog(`📐 地图拉线完成：真北方位角 ${currentHeading.toFixed(1)}°，拉线 ${distM.toFixed(0)}m，估算误差 ±${angErr.toFixed(1)}°。请点击右上角切回摄像头拍摄实景！`, 'system-log');
                 }
             });
@@ -558,10 +641,58 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
 
         // 引擎排盘权威面板：确定性算法结果先行展示，AI 只在其下做辅助解读
         // 九宫格按洛书布局：巽离坤 / 震中兑 / 艮坎乾；当运星金色、五黄红色
-        function enginePanel(hData) {
+        // 第二阶段第 10 项：新增 meta 参数，把引擎的测量不确定性与口径声明透出
+        function enginePanel(hData, meta = {}) {
             const x = hData.xuankong, b = hData.bazhai;
             const yp = x && x.flowStars && x.flowStars.yearPlate ? x.flowStars.yearPlate : null;
             let html = '<div class="luopan-panel"><div class="luopan-title">【算法引擎排盘 · 权威依据】</div>';
+
+            // ---- 测量不确定性横幅（第二阶段第 10 项）----
+            // 引擎会诚实给出"距二十四山分界仅 X°，可能为 A/B 两条山"，
+            // 此前这些信息被前端丢弃，用户只看到斩钉截铁的单一答案——这是最危险的状态。
+            const m = meta.measurement;
+            if (m) {
+                const cands = Array.isArray(m.candidateMountains) ? m.candidateMountains
+                    : (m.candidateMountains ? [m.candidateMountains] : []);
+                const candsTxt = (Array.isArray(m.candidateMountains) ? m.candidateMountains : [])
+                    .map(c => (typeof c === 'string' ? c : (c.mountain || c.name || JSON.stringify(c)))).filter(Boolean);
+                if (m.stability && String(m.stability).includes('敏感')) {
+                    html += `<div class="luopan-warn">⚠️ <b>山向分界敏感</b>：当前读数距二十四山分界仅 `
+                        + `${m.nearestBoundaryDistanceDegrees != null ? m.nearestBoundaryDistanceDegrees.toFixed(1) + '°' : '很近'}`
+                        + `${m.uncertaintyDegrees != null ? '，而本次测量不确定度为 ±' + m.uncertaintyDegrees + '°' : ''}。`
+                        + (candsTxt.length ? `可能为 <b>${candsTxt.join(' / ')}</b> 两条山，` : '')
+                        + `两者排出的飞星盘不同。<b>建议更换站位复测</b>，或用地图长距离拉线定向以降低误差。</div>`;
+                } else if (m.nearestBoundaryDistanceDegrees != null && m.uncertaintyDegrees != null
+                           && m.nearestBoundaryDistanceDegrees <= m.uncertaintyDegrees) {
+                    html += `<div class="luopan-warn">⚠️ 当前读数距最近山界 ${m.nearestBoundaryDistanceDegrees.toFixed(1)}°，`
+                        + `与测量不确定度 ±${m.uncertaintyDegrees}° 相当，坐山判定存在歧义风险，建议复测。</div>`;
+                } else if (m.sitDegree != null) {
+                    html += `<div class="luopan-meta-sub">坐向真北角度 ${m.sitDegree.toFixed(1)}°`
+                        + (m.uncertaintyDegrees != null ? `（±${m.uncertaintyDegrees}°）` : '')
+                        + `${m.nearestBoundaryDistanceDegrees != null ? `，距最近山界 ${m.nearestBoundaryDistanceDegrees.toFixed(1)}°` : ''}</div>`;
+                }
+                if (m.warnings) {
+                    const ws = Array.isArray(m.warnings) ? m.warnings : [m.warnings];
+                    ws.forEach(w => { html += `<div class="luopan-warn">⚠️ ${escHtml(String(w))}</div>`; });
+                }
+            }
+            const bm = meta.bazhaiMeasurement;
+            if (bm && bm.stability && String(bm.stability).includes('敏感')) {
+                html += `<div class="luopan-warn">⚠️ <b>宅卦分界敏感</b>：坐山接近两条山分界，宅卦可能不唯一，建议复测坐向。</div>`;
+            }
+            if (bm && bm.warnings) {
+                const ws = Array.isArray(bm.warnings) ? bm.warnings : [bm.warnings];
+                ws.forEach(w => { html += `<div class="luopan-warn">⚠️ ${escHtml(String(w))}</div>`; });
+            }
+
+            // ---- 运界口径（第二阶段第 8 项）----
+            if (meta.periodAdjustedByLichun) {
+                html += `<div class="luopan-fix">🔄 <b>运界已按立春修正</b>：所填建造年 ${meta.requestedHouseYear} 年早于该年立春，`
+                    + `实际应归 <b>${meta.effectiveHouseYear}</b> 年运界，本盘已按修正后运星排出。</div>`;
+            } else if (meta.periodBoundaryNote) {
+                html += `<div class="luopan-fix">ℹ️ ${escHtml(meta.periodBoundaryNote)}</div>`;
+            }
+
             if (x) {
                 html += `<div class="luopan-meta">${x.period.label}｜${x.sitMountain}山${x.facingMountain}向｜${x.guaType}｜局型：${x.formation}${yp ? `｜流年${yp.year}·${yp.starName}入中` : ''}</div>`;
                 if (x.palaces && x.palaces.length === 9) {
@@ -586,18 +717,28 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 html += `<div class="luopan-bazhai">八宅：命卦<b>${b.mingGua}</b>（${b.mingGroup}）· 宅卦<b>${b.houseGua}</b>（${b.houseGroup}）` +
                     (b.luckyDirections ? `｜四吉位：${b.luckyDirections.map(d => `${d.direction || ''}(${d.label || ''})`).join(' ')}` : '') + '</div>';
             }
+            // 【第二阶段第 9 项】命卦口径声明：
+            // 引擎用「年份除九取余 + 11/4」，与民间「数字和法」结果半数不同。
+            // 不声明会让用户无法与别处对照，也无法判断结论出自哪一派。
+            if (meta.mingGuaMethod && b) {
+                html += `<div class="luopan-method">📐 命卦算法口径：${escHtml(meta.mingGuaMethod.method)}。`
+                    + `${escHtml(meta.mingGuaMethod.sourceNote)}</div>`;
+            }
             html += '<div class="luopan-note">以上为确定性算法结果；下方 AI 内容仅为辅助解读，理气以本面板为准。</div></div>';
             return html;
         }
 
         // 通行星性口径（确定性规则表，非AI生成）：由引擎盘面推导方位宜忌
+        // 注意：宜忌结论中的五行生克方向须与引擎 FLYING_STAR_WUXING 保持一致。
+        // 例如山星6金对向星9火，引擎判为「山星克出向星」（金克火，火为受制一方），
+        // 因此宜忌表述必须是「忌火」而理由是「金克火」，不可写成「火克金」。
         const STAR_RULES = {
             1: { name: '一白贪狼', tag: '吉', yi: '利人缘官贵，宜整洁明亮', buyi: '' },
-            2: { name: '二黑病符', tag: '病符', yi: '', buyi: '忌久坐久卧，保持整洁干燥' },
+            2: { name: '二黑病符', tag: '病符', yi: '', buyi: '忌久坐久卧，宜静不宜动' },
             3: { name: '三碧蚩尤', tag: '是非', yi: '', buyi: '忌口舌争执与冲动决策' },
             4: { name: '四绿文昌', tag: '吉', yi: '利学业文书，宜书房绿植', buyi: '' },
-            5: { name: '五黄廉贞', tag: '大煞', yi: '宜静不宜动', buyi: '大忌动土装修、红黄色饰品、长期坐卧' },
-            6: { name: '六白武曲', tag: '吉', yi: '利事业权威，宜金属饰品', buyi: '忌红色火性物品（火克金）' },
+            5: { name: '五黄廉贞', tag: '大煞', yi: '宜静不宜动', buyi: '大忌动土装修、长期坐卧' },
+            6: { name: '六白武曲', tag: '吉', yi: '利事业权威，宜金属饰品', buyi: '忌红色火性物品（金克火，火为受制之方）' },
             7: { name: '七赤破军', tag: '退气', yi: '', buyi: '防口舌盗失，宜静不宜动' },
             8: { name: '八白左辅', tag: '吉', yi: '利财运，宜常活动使用', buyi: '' },
             9: { name: '九紫右弼', tag: '吉', yi: '主喜庆，宜明亮常使用', buyi: '忌污秽杂物堆压' },
@@ -769,16 +910,49 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 return;
             }
 
+            // 【P0-3 修复】室内模式坐向来源校验。
+            // 立极环拍时用户站位与朝向任意，若把"恰好面朝的方向"当坐向排盘，
+            // 结果毫无意义且被铁律 H 禁止 AI 质疑。故室内模式必须复用室外已确认坐向。
+            const isIndoor = surveyEnv === 'indoor';
+            const siting = loadSiting();
+            if (isIndoor) {
+                if (!siting || !Number.isFinite(siting.heading)) {
+                    isAnalyzing = false;
+                    document.getElementById('guide-modal').style.display = 'flex';
+                    document.getElementById('guide-step1').style.display = 'flex';
+                    document.getElementById('guide-step2').style.display = 'none';
+                    appendLog('⚠️ 室内勘测需要先在室外完成坐向定向（坐向决定整张飞星盘，室内无法自行测得）。请先选择「室外 · 门外定向」完成一次定向，再回到室内环拍。', 'system-log', true);
+                    return;
+                }
+                if (siting.orientationText) {
+                    appendLog(`🔒 已复用室外确认的坐向：${siting.orientationText}（${siting.heading.toFixed(1)}°，${siting.northReference === 'true' ? '真北' : '磁北已修正'}）。室内环拍朝向仅用于图像标注，不作为坐向。`, 'system-log', true);
+                }
+            }
+
             // 1. 锁定基准，采集多帧空间序列（站位指引已在此之前选择）
             isAnalyzing = true;
             logPanel.innerHTML = '';
             analysisRound = 1;
             retakeBtn.style.display = 'none';
-            appendLog(`📍 基准锁定 ${currentHeading.toFixed(1)}°。${surveyText()}`);
+
+            // 【P0-1 修复】在采集前冻结坐向基准角。
+            // captureSequence() 会按八方位顺时针排序并持续改写 currentHeading，
+            // 采集结束后它等于"最后一个采集方位"而非用户锁定基准时的朝向，
+            // 直接拿它排盘会导致坐向系统性错 20°~45°（2~3 个山位，整盘作废）。
+            // 室内模式下坐向一律取室外已确认值，不使用本次环拍朝向。
+            const baseHeading = isIndoor ? siting.heading : currentHeading;
+            const baseMountain = getMountain(baseHeading);
+            appendLog(`📍 基准锁定 ${baseHeading.toFixed(1)}°（${baseMountain}山）。${surveyText()}`);
             const cap = await captureSequence();
             if (!cap) return; // 采集中途被重置
             const frames = cap.frames, missed = cap.missed;
             appendLog(`✅ 八方位采集完成：${frames.length}/8 帧${missed.length ? '，未采集：' + missed.join('、') : ''}`);
+
+            // 采集后恢复基准角，避免残留状态影响界面显示与后续自动重锁判定
+            currentHeading = baseHeading;
+            smoothedHeading = baseHeading;
+            lastStableHeading = baseHeading;
+            headingVal.innerText = baseHeading.toFixed(1);
 
             let mapBase64 = null;
             const gaodeKey = localStorage.getItem('GAODE_KEY');
@@ -788,14 +962,26 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             try {
                 // 2. 后端排盘与地图
                 // 方位基准：地图拉线为真北；罗盘为磁北，需服务端按 GPS 坐标算磁偏角修正
-                const usedMapCalibration = !!(mapStartPoint && mapEndPoint);
+                // 【P0-3】室内模式的坐向与基准口径一律沿用室外已确认值，避免用环拍朝向排盘
+                const usedMapCalibration = isIndoor ? (siting.northReference === 'true') : !!(mapStartPoint && mapEndPoint);
                 const houseYear = localStorage.getItem('HOUSE_YEAR');
                 const reqBody = {
-                    heading: currentHeading,
+                    // 【P0-1 修复】使用冻结的基准角，而非被采集改写后的 currentHeading
+                    heading: baseHeading,
                     northReference: usedMapCalibration ? 'true' : 'magnetic',
                     uncertainty: usedMapCalibration ? mapUncertaintyDeg : 3
                 };
+                if (isIndoor && Number.isFinite(siting.uncertaintyDegrees)) reqBody.uncertainty = siting.uncertaintyDegrees;
+                // 磁北口径必须有 GPS 才能算磁偏角：室外在此拦截并给出可执行指引
+                if (reqBody.northReference === 'magnetic' && (userLat == null || userLng == null)) {
+                    throw new Error('缺少 GPS 坐标，无法修正磁偏角（直接按 0 处理会使坐向偏差近 10°，足以错判一整山）。请允许定位权限，或点击右上角「地图拉线定向」用真北完成定向。');
+                }
                 if (houseYear) reqBody.year = parseInt(houseYear);
+                // 【第二阶段第 8 项】建造月日：用于把运界从"公历年"修正为"立春换运"
+                const hMonth = localStorage.getItem('HOUSE_MONTH');
+                const hDay = localStorage.getItem('HOUSE_DAY');
+                if (hMonth) reqBody.houseMonth = parseInt(hMonth, 10);
+                if (hDay) reqBody.houseDay = parseInt(hDay, 10);
                 if (userLat != null && userLng != null) { reqBody.lat = userLat; reqBody.lng = userLng; }
                 if (bYear) reqBody.birthYear = parseInt(bYear);
                 const flowYear = localStorage.getItem('FLOW_YEAR');
@@ -835,13 +1021,41 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 const declNote = meta.northReference === 'magnetic' && meta.magneticDeclinationDegrees != null
                     ? `（磁偏角 ${meta.magneticDeclinationDegrees.toFixed(1)}° 已按 GPS 修正为真北）` : "（真北）";
                 appendLog(`🧭 理气排盘完毕：${sf}，${tp}${declNote}`);
-                appendLog(enginePanel(hData), 'system-log', true);
+                // 【第二阶段第 8/9/10 项】把 meta 传入 enginePanel 以展示运界修正、
+                // 命卦口径与测量不确定性
+                appendLog(enginePanel(hData, meta), 'system-log', true);
+                if (meta.periodAdjustedByLichun) {
+                    appendLog(`🔄 运界已按立春修正：所填建造年 ${meta.requestedHouseYear} 年对应实际运界 ${meta.effectiveHouseYear} 年。玄空盘错一运则全盘作废，故此处显式提示。`, 'system-log', true);
+                }
+
+                // 【P0-3 修复】室外定向成功后，把坐向落盘，供后续室内环拍复用。
+                // 只在室外（orientation）落盘，且记录真实度数与口径，便于复核与记忆标注。
+                if (!isIndoor) {
+                    saveSiting({
+                        heading: baseHeading,
+                        northReference: reqBody.northReference,
+                        uncertaintyDegrees: reqBody.uncertainty,
+                        orientationText: sf,
+                        sitDegree: (hData.xuankong && hData.xuankong.measurement && hData.xuankong.measurement.sitDegree != null)
+                            ? hData.xuankong.measurement.sitDegree : null,
+                        magneticDeclinationDegrees: meta.magneticDeclinationDegrees ?? null,
+                        ts: new Date().toLocaleString('zh-CN'),
+                    });
+                }
 
                 // 用排盘结果校正实时初判山名（初判未做磁偏角修正，可能与排盘不同）
                 const sitMatch = typeof sf === 'string' ? sf.match(/坐(.+?)向/) : null;
                 if (sitMatch) document.getElementById('mountain-name').innerText = sitMatch[1] + "山(排盘)";
                 // 供 AI 回复幻觉交叉核对使用
-                window.__lastHorosa = { orientationText: sf, mingGua: hData.bazhai ? hData.bazhai.mingGua : null };
+                window.__lastHorosa = {
+                    orientationText: sf,
+                    mingGua: hData.bazhai ? hData.bazhai.mingGua : null,
+                    // 【第二阶段第 13 项】补拍轮记忆需要引用坐向可信度信息，此处一并留存
+                    sitDegree: meta && meta.measurement && meta.measurement.sitDegree != null
+                        ? meta.measurement.sitDegree : null,
+                    mountainConfirmed: !isIndoor,
+                    orientationSource: isIndoor ? '复用室外已确认坐向' : (usedMapCalibration ? '地图拉线（真北）' : '罗盘（磁北已修正）'),
+                };
 
                 if (userLat && userLng && gaodeKey) {
                     appendLog("🗺️ 正在获取当地地理外局地图...");
@@ -880,14 +1094,34 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 window.__lastHorosaData = hData;
                 appendLog(advicePanel(hData), 'system-log', true);
                 appendLog(remindersPanel(hData), 'system-log', true);
-                saveMemoryRecord({
-                    ts: new Date().toLocaleString('zh-CN'),
-                    mode: surveyText(),
-                    orientationText: sf,
-                    periodLabel: tp,
-                    mingGua: hData.bazhai ? hData.bazhai.mingGua : null,
-                    summary: (reply || '').replace(/<[^>]+>/g, '').slice(0, 200),
-                });
+                // 【第二阶段第 13 项】可信度门控：思考流兜底 / 超时 / 空回复一律不写入勘测记忆。
+                // 原因是记忆会被拼进下一轮 prompt 并要求 AI「像复诊老医师一样回顾既往结论」，
+                // 一条未经验证的思考流一旦成为"既往结论"，会持续污染后续所有推理。
+                const aiMeta = (reply && reply.__meta) || {};
+                if (aiMeta.fallbackUsed || aiMeta.timedOut || aiMeta.empty) {
+                    appendLog('⚠️ 本轮 AI 未产出正式解读（思考流兜底/超时/空回复），结论未写入勘测记忆，以免污染后续推理。', 'system-log', true);
+                } else {
+                    saveMemoryRecord({
+                        ts: new Date().toLocaleString('zh-CN'),
+                        mode: surveyText(),
+                        orientationText: sf,
+                        periodLabel: tp,
+                        mingGua: hData.bazhai ? hData.bazhai.mingGua : null,
+                        summary: (reply || '').replace(/<[^>]+>/g, '').slice(0, 200),
+                        // 【第二阶段第 13 项】记忆可信度标记
+                        verified: true,
+                        engineVersion: (meta && meta.mingGuaMethod && meta.mingGuaMethod.method) ? 'mingyu-core+lichun' : 'mingyu-core',
+                        // 【P0-2 修复】一并落盘真实度数与引擎确认状态，
+                        // 便于后续复核坐向是否落在分界线敏感区（配合记忆可信度标注）
+                        sitDegree: meta && meta.measurement && meta.measurement.sitDegree != null
+                            ? meta.measurement.sitDegree : null,
+                        mountainConfirmed: !isIndoor,   // 室内模式的坐向沿用室外成果，非本轮现场测得
+                        orientationSource: isIndoor ? '复用室外已确认坐向' : (usedMapCalibration ? '地图拉线（真北）' : '罗盘（磁北已修正）'),
+                    });
+                }
+                // 【P0-2 修复】裁剪历史图片：只保留最近 2 轮带图的 user 消息，
+                // 更早的图片替换为文字摘要，避免多轮补拍后 base64 无界累积直至平台拒绝
+                pruneImageHistory();
                 if (reply && reply.includes('【重拍')) {
                     retakeBtn.style.display = 'block';
                     appendLog('📷 大师请求补拍：请点击下方"按要求补拍"按钮继续本轮分析。', 'system-log', true);
@@ -970,11 +1204,47 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                     };
                 }
 
-                // 统一经后端代理转发，规避浏览器 CORS 限制；看门狗按"无输出时长"计（思考型模型先流思考内容，总时长会长）
+                // 【P0-2 修复】发请求前本地预估体积，超限立即提示，不浪费两分钟等待平台 413
+                const bodyTooLarge = guardBodySize({ provider, apiKey, payload });
+                if (bodyTooLarge) throw new Error(bodyTooLarge);
+
+                // 统一经后端代理转发，规避浏览器 CORS 限制
+                //
+                // 【第二阶段第 11 项】两级看门狗。
+                // 原实现为单一 45s「无输出即杀」，前提是上游思考期持续流式输出
+                // reasoning_content。但部分 GLM 部署/企业版代理会关闭流式 reasoning，
+                // 或 reasoning_effort=high 下思考阶段本就不吐 token —— 此时 45s 内零字节，
+                // 请求必被误杀，而用户恰恰配置了 max_tokens=65536 的超长请求。
+                //
+                // 改为两级：
+                //   首字节容忍 90s（覆盖"首 token 前的长思考"），
+                //   之后每收到字节重置为 45s 无输出上限。
+                const FIRST_BYTE_TIMEOUT_MS = 90000;
+                const IDLE_TIMEOUT_MS = 45000;
                 const abortCtrl = new AbortController();
                 let streamTimedOut = false;
-                let watchdog = setTimeout(() => { streamTimedOut = true; abortCtrl.abort(); }, 45000);
-                const resetWatchdog = () => { clearTimeout(watchdog); watchdog = setTimeout(() => { streamTimedOut = true; abortCtrl.abort(); }, 45000); };
+                let gotFirstByte = false;
+                let watchdog = setTimeout(() => { streamTimedOut = true; abortCtrl.abort(); }, FIRST_BYTE_TIMEOUT_MS);
+                const resetWatchdog = () => {
+                    clearTimeout(watchdog);
+                    watchdog = setTimeout(() => { streamTimedOut = true; abortCtrl.abort(); }, gotFirstByte ? IDLE_TIMEOUT_MS : FIRST_BYTE_TIMEOUT_MS);
+                };
+
+                // 【第二阶段第 11 项】思考心跳在"请求发出"时立即启动，而非等首个
+                // reasoning_content 到达才启动 —— 上游不流式 reasoning 时，恰恰是最需要
+                // 让用户知道"还在跑"的场景却没有提示，表现为界面完全假死。
+                let thinkTimer = null, thinkStart = Date.now(), heartbeatDiv = null;
+                const stopThinkingHint = (doneText) => {
+                    if (thinkTimer) { clearInterval(thinkTimer); thinkTimer = null; }
+                    if (heartbeatDiv && doneText) heartbeatDiv.innerHTML = doneText;
+                };
+                // 心跳 DOM 元素：在 AI 气泡之后插入
+                heartbeatDiv = appendLog('🤔 正在思考中…（首字节最长等待 90 秒）', 'assistant');
+                thinkTimer = setInterval(() => {
+                    if (!heartbeatDiv) return;
+                    const sec = Math.round((Date.now() - thinkStart) / 1000);
+                    heartbeatDiv.innerHTML = `🤔 正在思考中…（已 ${sec} 秒）`;
+                }, 10000);
                 const res = await fetch('/api/ai', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1006,11 +1276,6 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 let fallbackUsed = false;
                 // 思考不实时展示（用户方案）：思考期间每10秒心跳提示，正文开始才出解读
                 let reasoningFull = '', contentBuf = '', flushTimer = null, contentStarted = false;
-                let thinkTimer = null, thinkStart = 0, heartbeatDiv = null;
-                const stopThinkingHint = (doneText) => {
-                    if (thinkTimer) { clearInterval(thinkTimer); thinkTimer = null; }
-                    if (heartbeatDiv && doneText) heartbeatDiv.innerHTML = doneText;
-                };
                 const flushBuffers = () => {
                     if (contentBuf) {
                         aiDiv.innerHTML += escHtml(contentBuf).replace(/\n/g, '<br>');
@@ -1022,7 +1287,9 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    resetWatchdog();
+                    // 【第二阶段第 11 项】首个字节到达后，看门狗切换为 45s 无输出上限
+                    if (!gotFirstByte) { gotFirstByte = true; resetWatchdog(); }
+                    else resetWatchdog();
                     const chunk = decoder.decode(value, {stream: true});
                     if (provider === 'gemini') {
                         // SSE 按行缓冲后整行 JSON 解析，避免转义引号/跨块截断导致丢字
@@ -1059,15 +1326,13 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                                 if (delta.reasoning_content) {
                                     if (!reasoningSeen) {
                                         // 思考不实时展示：仅心跳提示，避免英文推理流刷屏
-                                        heartbeatDiv = appendLog('🤔 正在思考中…', 'assistant');
-                                        thinkStart = Date.now();
-                                        thinkTimer = setInterval(() => {
-                                            if (!heartbeatDiv) return;
-                                            const sec = Math.round((Date.now() - thinkStart) / 1000);
-                                            heartbeatDiv.innerHTML = `🤔 正在思考中…（已 ${sec} 秒）`;
-                                        }, 10000);
+                                        // 【第二阶段第 11 项】心跳已在请求发出时启动，此处仅补文案
+                                        if (!heartbeatDiv) {
+                                            heartbeatDiv = appendLog('🤔 正在思考中…', 'assistant');
+                                            thinkStart = Date.now();
+                                        }
+                                        reasoningSeen = true;
                                     }
-                                    reasoningSeen = true;
                                     reasoningFull += delta.reasoning_content; // 仅内部留存（兜底输出用），不展示
                                 }
                                 if (delta.content) {
@@ -1116,6 +1381,10 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 stopThinkingHint('⚠️ 思考中断：出现错误（见下方红字）');
                 aiDiv.innerHTML += `<br><span style="color:red">错误: ${err.message}</span>`;
             }
+            // 【第二阶段第 13 项】把本轮可信状态挂到返回值上（字符串对象的隐藏属性），
+            // 使调用方能判断"这是正式解读"还是"思考流兜底"，从而决定是否写入勘测记忆。
+            // 不改返回类型，向后兼容既有调用点。
+            try { Object.defineProperty(fullReply, '__meta', { value: { fallbackUsed, timedOut: !!streamTimedOut, empty: !fullReply }, enumerable: false }); } catch (e) {}
             return fullReply;
         }
 
@@ -1146,14 +1415,26 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 appendLog(advicePanel(window.__lastHorosaData), 'system-log', true);
                 appendLog(remindersPanel(window.__lastHorosaData), 'system-log', true);
             }
-            saveMemoryRecord({
-                ts: new Date().toLocaleString('zh-CN'),
-                mode: `第${analysisRound}轮补拍`,
-                orientationText: window.__lastHorosa ? window.__lastHorosa.orientationText : '',
-                periodLabel: '',
-                mingGua: window.__lastHorosa ? window.__lastHorosa.mingGua : null,
-                summary: (reply || '').replace(/<[^>]+>/g, '').slice(0, 200),
-            });
+            // 【第二阶段第 13 项】补拍轮同样受可信度门控约束：
+            // 兜底/超时/空回复不得成为"既往结论"，否则会跨轮污染后续推理。
+            const retakeMeta = (reply && reply.__meta) || {};
+            if (retakeMeta.fallbackUsed || retakeMeta.timedOut || retakeMeta.empty) {
+                appendLog('⚠️ 本轮补拍未产出正式解读（思考流兜底/超时/空回复），结论未写入勘测记忆。如需继续，请点🔄开始新勘测。', 'system-log', true);
+            } else {
+                saveMemoryRecord({
+                    ts: new Date().toLocaleString('zh-CN'),
+                    mode: `第${analysisRound}轮补拍`,
+                    orientationText: window.__lastHorosa ? window.__lastHorosa.orientationText : '',
+                    periodLabel: '',
+                    mingGua: window.__lastHorosa ? window.__lastHorosa.mingGua : null,
+                    summary: (reply || '').replace(/<[^>]+>/g, '').slice(0, 200),
+                    verified: true,
+                    engineVersion: 'mingyu-core+lichun',
+                    sitDegree: window.__lastHorosa ? (window.__lastHorosa.sitDegree ?? null) : null,
+                    mountainConfirmed: window.__lastHorosa ? !!window.__lastHorosa.mountainConfirmed : false,
+                    orientationSource: window.__lastHorosa ? (window.__lastHorosa.orientationSource || '') : '',
+                });
+            }
             if (reply && reply.includes('【重拍')) retakeBtn.style.display = 'block';
         };
 
@@ -1180,6 +1461,9 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
             isCapturing = false;
             captureSeq++; // 中断进行中的多帧采集
             retakeBtn.style.display = 'none';
+            // 【P0-3 修复】重置意味着"重新定向"，必须同时作废已落盘的室内坐向，
+            // 否则下次进入室内模式会复用一个已被用户主动废弃的旧坐向
+            clearSiting();
             if (!isMapMode) {
                 video.play();
                 logPanel.innerHTML = '<div class="chat-msg system-log">等待罗盘稳定... 当您停顿 1.5 秒时将自动锁定画面进行深度分析。<br>⚖️ 分析结果仅供传统环境文化参考，不构成建筑、装修或投资决策依据。</div>';
@@ -1200,19 +1484,81 @@ K. 回复结构（引擎优先）：回复须以"引擎排盘要点"开篇（引
                 dummyCanvas.width = 1; dummyCanvas.height = 1;
                 return dummyCanvas.toDataURL('image/jpeg').split(',')[1];
             }
-            canvas.width = 720; 
-            canvas.height = (video.videoHeight / video.videoWidth) * 720 || 1280;
+            // 【P0-2 修复】分辨率 720→512、质量 0.8→0.65：单帧从约 110KB 降到约 45KB。
+            // 玄空飞星所需的是"形煞"级别的峦头信息，512px 足以辨识路冲/尖角/门向，
+            // 而 8 帧×3 轮的 base64 累积是触发 Vercel 4.5MB 平台上限的主因。
+            canvas.width = 512;
+            canvas.height = (video.videoHeight / video.videoWidth) * 512 || 910;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            return canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+            return canvas.toDataURL('image/jpeg', 0.65).split(',')[1];
+        }
+
+        // 【P0-2 修复】请求体预估守卫：发请求前在本地拦截，避免用户等两分钟后才看到平台 413。
+        // 后端硬上限 4MB（Vercel 平台约 4.5MB），这里留 8% 余量给 JSON 包装与字段膨胀。
+        const MAX_BODY_BYTES = 4 * 1024 * 1024;
+        function estimateBodyBytes(obj) {
+            try { return new Blob([JSON.stringify(obj)]).size; } catch (e) { return 0; }
+        }
+        function guardBodySize(obj, retryHint) {
+            const bytes = estimateBodyBytes(obj);
+            if (bytes > MAX_BODY_BYTES * 0.92) {
+                return `本次请求体约 ${(bytes / 1024 / 1024).toFixed(2)}MB，已接近 4MB 上限${retryHint ? '（' + retryHint + '）' : ''}。请点击🔄重新勘测以清空图片历史，或改用文字追问。`;
+            }
+            return null;
+        }
+
+        // 【P0-2 修复】历史图片裁剪：只保留最近 2 轮带图消息的图片，
+        // 更早的轮次保留其文字内容（含坐向、运盘、缺失方位说明），仅剥离 base64。
+        // 这样多轮补拍时请求体不再无界累积，同时不丢失任何文字上下文。
+        const KEEP_IMAGE_ROUNDS = 2;
+        function pruneImageHistory() {
+            const imgIdx = [];
+            chatHistory.forEach((m, i) => {
+                if (m.role === 'user' && Array.isArray(m.content) && m.content.some(c => c.type === 'image_url')) imgIdx.push(i);
+            });
+            if (imgIdx.length <= KEEP_IMAGE_ROUNDS) return;
+            const drop = imgIdx.slice(0, imgIdx.length - KEEP_IMAGE_ROUNDS);
+            drop.forEach(i => {
+                const keptText = chatHistory[i].content
+                    .filter(c => c.type === 'text')
+                    .map(c => c.text)
+                    .join('\n')
+                    .slice(0, 1200);
+                const nImg = chatHistory[i].content.filter(c => c.type === 'image_url').length;
+                chatHistory[i].content = [{ type: 'text', text: `${keptText}\n（本轮 ${nImg} 张实景图已从上下文中移除以控制请求体积；其图像观察结论已保留在下方回复中。）` }];
+            });
         }
 
         document.getElementById('start-btn').addEventListener('click', async () => {
+            // GPS：磁偏角修正的必需输入。必须 await 并暴露失败原因，
+            // 否则室内/无定位场景会一路静默走到 /api/horosa 才报 400。
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    pos => { userLat = pos.coords.latitude; userLng = pos.coords.longitude; },
-                    err => console.warn("GPS 定位被拒绝")
-                );
+                try {
+                    const pos = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: true,
+                            timeout: 20000,
+                            maximumAge: 30000,
+                        });
+                    });
+                    userLat = pos.coords.latitude;
+                    userLng = pos.coords.longitude;
+                    gpsAccuracy = pos.coords.accuracy;
+                    if (gpsAccuracy > 50) {
+                        appendLog(`⚠️ GPS 精度较低（约 ${Math.round(gpsAccuracy)}m），磁偏角计算可能存在偏差。若定位漂移，建议改用地图拉线定向（直接使用真北，无需修正）。`, 'system-log', true);
+                    }
+                } catch (err) {
+                    gpsError = (err && err.message) || '定位失败';
+                    appendLog(`⚠️ 未获取到 GPS 坐标（${gpsError}）。罗盘测向需要 GPS 才能修正磁偏角，系统将自动切换到地图拉线定向模式（直接使用真北，无需磁偏角修正）。`, 'system-log', true);
+                }
+            } else {
+                gpsError = '浏览器不支持地理定位';
+                appendLog('⚠️ 当前浏览器不支持地理定位，罗盘磁偏角无法修正，将使用地图拉线定向模式。', 'system-log', true);
+            }
+            // 无 GPS 时直接进入地图拉线模式，避免用户在无解的罗盘路径上浪费时间
+            if (userLat == null || userLng == null) {
+                if (!isMapMode) document.getElementById('switch-mode-btn').click();
             }
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 try {

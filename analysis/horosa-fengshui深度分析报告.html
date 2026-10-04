@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>horosa-fengshui 深度拆解分析报告</title>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#ffffff; --ink:#0f172a; --ink2:#334155; --ink3:#64748b; --line:#e2e8f0;
+  --p0:#dc2626; --p1:#d97706; --p2:#0284c7; --ok:#15803d;
+  --accent:#4f46e5;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  line-height:1.75;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+
+/* header */
+header{background:linear-gradient(135deg,#1e1b4b 0%,#312e81 55%,#4c1d95 100%);color:#fff;padding:52px 0 44px;margin-bottom:34px}
+header .wrap{padding-bottom:0}
+.kicker{font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:#c7d2fe;margin-bottom:12px}
+h1{margin:0 0 14px;font-size:33px;line-height:1.3;font-weight:800}
+.sub{font-size:14.5px;color:#ddd6fe;max-width:820px}
+.meta{margin-top:22px;display:flex;flex-wrap:wrap;gap:8px}
+.meta span{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);
+  padding:4px 12px;border-radius:20px;font-size:12px;color:#e0e7ff}
+
+/* nav */
+nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line);margin-bottom:32px}
+nav .wrap{padding:0 20px;display:flex;gap:2px;overflow-x:auto}
+nav a{padding:14px 14px;font-size:13.5px;color:var(--ink3);text-decoration:none;
+  border-bottom:2.5px solid transparent;white-space:nowrap;font-weight:600;transition:.15s}
+nav a:hover{color:var(--accent)}
+nav a.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* section */
+section{margin-bottom:44px;scroll-margin-top:64px}
+h2{font-size:24px;margin:0 0 6px;font-weight:800;letter-spacing:-.01em;
+  display:flex;align-items:center;gap:11px}
+h2 .no{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
+  background:var(--accent);color:#fff;border-radius:8px;font-size:14.5px;flex:none}
+.lead{color:var(--ink3);font-size:14px;margin:0 0 20px;padding-left:41px}
+h3{font-size:17.5px;margin:28px 0 10px;font-weight:700;color:var(--ink)}
+h4{font-size:15px;margin:20px 0 8px;font-weight:700;color:var(--ink2)}
+p{margin:0 0 13px;font-size:14.5px;color:var(--ink2)}
+ul,ol{margin:0 0 14px;padding-left:24px;font-size:14.5px;color:var(--ink2)}
+li{margin-bottom:5px}
+code{background:#f1f5f9;padding:1.5px 6px;border-radius:4px;font-size:13px;
+  font-family:'Cascadia Code',Consolas,monospace;color:#7c2d12}
+pre{background:#0f172a;color:#e2e8f0;padding:17px 19px;border-radius:10px;overflow-x:auto;
+  font-size:12.8px;line-height:1.68;margin:0 0 16px;
+  font-family:'Cascadia Code',Consolas,monospace}
+pre code{background:none;padding:0;color:inherit}
+
+/* cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 26px;margin-bottom:18px;
+  box-shadow:0 1px 2px rgba(15,23,42,.04)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:820px){.grid2,.grid3,.grid4{grid-template-columns:1fr}}
+
+/* verdict banner */
+.verdict{background:linear-gradient(135deg,#7f1d1d,#b91c1c);color:#fff;border-radius:14px;padding:24px 28px;margin-bottom:20px}
+.verdict .t{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:#fecaca;margin-bottom:9px}
+.verdict p{margin:0;font-size:16px;color:#fff;font-weight:600;line-height:1.7}
+.verdict.g{background:linear-gradient(135deg,#14532d,#15803d)}
+.verdict.g .t{color:#bbf7d0}
+.verdict.b{background:linear-gradient(135deg,#1e3a8a,#4338ca)}
+.verdict.b .t{color:#c7d2fe}
+
+/* stat */
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;text-align:center}
+.stat .n{font-size:30px;font-weight:800;line-height:1.1}
+.stat .l{font-size:12.5px;color:var(--ink3);margin-top:5px}
+.stat .n.red{color:var(--p0)}.stat .n.amb{color:var(--p1)}.stat .n.grn{color:var(--ok)}.stat .n.blu{color:var(--p2)}
+
+/* table */
+.tw{overflow-x:auto;margin:0 0 18px;border:1px solid var(--line);border-radius:12px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:13.2px;min-width:600px}
+th{background:#f1f5f9;text-align:left;padding:11px 14px;font-weight:700;color:var(--ink);
+  border-bottom:1.5px solid var(--line);white-space:nowrap;font-size:12.6px}
+td{padding:10px 14px;border-bottom:1px solid #f1f5f9;color:var(--ink2);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#fafbfc}
+.mono{font-family:'Cascadia Code',Consolas,monospace;font-size:11.8px}
+.pill{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.p0{background:#fee2e2;color:#b91c1c}
+.p1{background:#fef3c7;color:#b45309}
+.p2{background:#e0f2fe;color:#0369a1}
+.ok{background:#dcfce7;color:#15803d}
+.bad{background:#fee2e2;color:#b91c1c}
+.warn{background:#fef3c7;color:#b45309}
+.mut{background:#f1f5f9;color:#64748b}
+
+/* issue block */
+.issue{border:1px solid var(--line);border-left-width:5px;border-radius:11px;padding:20px 24px;margin-bottom:16px;background:#fff}
+.issue.p0{border-left-color:var(--p0)}
+.issue.p1{border-left-color:var(--p1)}
+.issue.p2{border-left-color:var(--p2)}
+.issue h4{margin:0 0 4px;font-size:16px;color:var(--ink);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.issue .tag{font-size:11px;color:var(--ink3);font-weight:600;font-family:'Cascadia Code',Consolas,monospace}
+
+/* svg figure */
+figure{margin:0 0 20px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;overflow-x:auto}
+figure img{width:100%;height:auto;display:block;min-width:720px}
+figcaption{font-size:12.5px;color:var(--ink3);margin-top:12px;padding-top:11px;border-top:1px solid var(--line);text-align:center}
+
+/* checklist */
+.check{list-style:none;padding:0}
+.check li{background:#fff;border:1px solid var(--line);border-radius:9px;padding:11px 15px 11px 42px;
+  margin-bottom:8px;position:relative;font-size:13.8px}
+.check li:before{content:'□';position:absolute;left:15px;top:9px;font-size:17px;color:var(--accent);font-weight:700}
+
+.foot{border-top:1px solid var(--line);padding-top:22px;color:var(--ink3);font-size:12.5px}
+.note{background:#f8fafc;border:1px dashed var(--line);border-radius:10px;padding:14px 18px;font-size:13.3px;color:var(--ink3);margin-bottom:16px}
+.hl{background:linear-gradient(transparent 62%,#fde68a 62%);font-weight:600;color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="kicker">开源项目深度拆解 · 全维度深挖</div>
+    <h1>horosa-fengshui 深度拆解分析报告</h1>
+    <p class="sub">对基于 AR 实测 + 玄空飞星 / 八宅明镜排盘的移动端 Web 应用，展开架构分层、知识专业性判伪、用户问题识别与优化路线四个维度的完整审查。</p>
+    <div class="meta">
+      <span>本体 1,646 行</span>
+      <span>依赖 mingyu-core 0.4.0</span>
+      <span>24 次提交</span>
+      <span>测试 23/23 通过</span>
+      <span>分析日期 2026-10-04</span>
+      <span>全程只读 · 仓库零改动</span>
+    </div>
+  </div>
+</header>
+
+<nav><div class="wrap">
+  <a href="#s1" class="on">总览</a>
+  <a href="#s2">架构拆解</a>
+  <a href="#s3">知识判伪</a>
+  <a href="#s4">P0 缺陷</a>
+  <a href="#s5">P1 / P2 问题</a>
+  <a href="#s6">优化路线</a>
+  <a href="#s7">验收清单</a>
+</div></nav>
+
+<div class="wrap">
+
+<!-- ============ 1 总览 ============ -->
+<section id="s1">
+  <h2><span class="no">1</span>总览：三个结论</h2>
+  <p class="lead">先说结果，再说依据。</p>
+
+  <div class="verdict">
+    <div class="t">结论一 · 最严重</div>
+    <p>项目会在第一次真实使用中就给出错误坐向，而用户在界面、AI 文本、机器校验三处都得不到任何异常信号。<br>
+    <span style="font-weight:400;font-size:14.5px;opacity:.92">采集八方位的过程污染了坐向基准，偏差 20°~45°（平均 28°），等于 2~3 个山位错判，整张飞星盘作废。</span></p>
+  </div>
+
+  <div class="verdict g">
+    <div class="t">结论二 · 知识层</div>
+    <p>排盘算法专业，表达层不专业。<br>
+    <span style="font-weight:400;font-size:14.5px;opacity:.92">飞星布盘、下卦顺逆、替卦歌诀、紫白流年全部经得起对照；但九运/八运分界未按立春、九星宜忌表生克方向写反、命卦口径未声明流派。</span></p>
+  </div>
+
+  <div class="verdict b">
+    <div class="t">结论三 · 工程层</div>
+    <p>架构三分是清醒的，但存在一处根本性契约断裂与一个测试盲区。<br>
+    <span style="font-weight:400;font-size:14.5px;opacity:.92">核心资产在依赖包里而非本仓库；23 项测试全通过，但只测引擎不测「采集→排盘」链路——P0 缺陷正好落在这个盲区里。</span></p>
+  </div>
+
+  <div class="grid4" style="margin:22px 0">
+    <div class="stat"><div class="n red">4</div><div class="l">P0 致命问题</div></div>
+    <div class="stat"><div class="n amb">6</div><div class="l">P1 严重问题</div></div>
+    <div class="stat"><div class="n blu">4</div><div class="l">P2 体验问题</div></div>
+    <div class="stat"><div class="n grn">13</div><div class="l">知识判伪通过项</div></div>
+  </div>
+
+  <h3>项目画像速览</h3>
+  <div class="tw"><table>
+    <thead><tr><th>维度</th><th>事实</th><th>评价</th></tr></thead>
+    <tbody>
+      <tr><td><b>形态</b></td><td>Vercel Serverless + PWA 单页，<code>public/index.html</code> 单文件 1,233 行</td><td><span class="pill warn">工程集中度过高</span></td></tr>
+      <tr><td><b>分工</b></td><td>前端只做测量 / 编排 / 约束，术数逻辑全在 <code>mingyu-core</code></td><td><span class="pill ok">架构自觉</span></td></tr>
+      <tr><td><b>防幻觉</b></td><td>13 条 System Instruction + <code>verifyAIReply</code> 机器核对 + 补拍闭环</td><td><span class="pill ok">同类上游水平</span></td></tr>
+      <tr><td><b>测量精度</b></td><td>EMA 滤波、WMM-2025 磁偏角、按拉线长度动态算误差、二十四山边界敏感检测</td><td><span class="pill ok">建模严谨</span></td></tr>
+      <tr><td><b>引擎复用</b></td><td>8 个高质量结构化字段（evidence / measurement / replacement 等）前端完全未用</td><td><span class="pill bad">严重浪费</span></td></tr>
+      <tr><td><b>测试</b></td><td><code>test-engine.mjs</code> 23 项全通过，直调引擎不经 API 层</td><td><span class="pill bad">存在链路盲区</span></td></tr>
+      <tr><td><b>合规</b></td><td>AGPL-3.0-only；API Key 存 localStorage；API 无鉴权；CORS 全开</td><td><span class="pill warn">README 已诚实披露</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============ 2 架构 ============ -->
+<section id="s2">
+  <h2><span class="no">2</span>架构拆解</h2>
+  <p class="lead">四层结构，依赖方向无环，但层间契约有一处根本断裂。</p>
+
+  <figure>
+    <img src="svg/01-架构分层总览.svg" alt="架构分层总览">
+    <figcaption>图 1 · 四层架构与风险总览：采集层 / 代理层 / AI 层 / 引擎层，以及 P0-1 契约断裂点</figcaption>
+  </figure>
+
+  <h3>2.1 分层职责与依赖方向</h3>
+  <p>项目实际是四层结构。关键判断是：<span class="hl">项目的核心资产不在本仓库里，而在依赖 <code>mingyu-core</code> 中</span>——玄空飞星、八宅大游年、二十四山、城门诀全部由引擎完成，本仓库只负责三件事：</p>
+  <ul>
+    <li><b>测量</b>：罗盘（<code>deviceorientation</code>）、地图（Leaflet + Turf 拉线）、摄像头（八方位环拍）</li>
+    <li><b>编排</b>：八方位定向采集 + SSE 流式透传 + 多模型适配</li>
+    <li><b>约束</b>：13 条 System Instruction 铁律 + 幻觉机器核对 + 补拍闭环</li>
+  </ul>
+  <p>这个分工是清醒的，没有把术数逻辑写进前端。</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>检查项</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td>前端 → 后端</td><td>单向 <code>fetch</code>，无反向调用</td></tr>
+      <tr><td>后端 → 引擎</td><td>动态 <code>await import('mingyu-core/residential-fengshui')</code>（<code>api/index.js:126</code>）</td></tr>
+      <tr><td>引擎 → 地基</td><td><code>@soul-atelier/xuankong</code> → <code>@soul-atelier/core</code>（<code>chart.ts</code> 导入 <code>flyChart/mountainOf/palaceByLuoshu</code>）</td></tr>
+      <tr><td>循环依赖</td><td><span class="pill ok">未发现</span>　<code>core</code> 不反向引用 <code>xuankong</code></td></tr>
+      <tr><td>测试独立性</td><td><span class="pill bad">有盲区</span>　<code>test-engine.mjs</code> 直调引擎，<b>不经过 api 层</b>，因此测不到 api 层的契约错误</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>2.2 层间结合机制：三条声明式契约</h3>
+  <p>项目没有用注册器 / 插件这类机制，绑定完全靠三处字符串契约：</p>
+  <div class="tw"><table>
+    <thead><tr><th>契约</th><th>声明位置</th><th>消费位置</th><th>耦合度</th></tr></thead>
+    <tbody>
+      <tr><td><code>northReference</code> 口径串</td><td>前端 <code>reqBody.northReference</code>（<code>index.html:795</code>）</td><td>引擎 <code>resolveDoorNorth</code> 三值枚举</td><td><span class="pill ok">低</span>，但有陷阱</td></tr>
+      <tr><td>九宫 <code>gong</code> 数字键</td><td>引擎 <code>palaces[].gong</code>（1-9）</td><td>前端 <code>order=[4,9,2,3,5,7,8,1,6]</code> 反查（<code>index.html:570</code>）</td><td><span class="pill warn">中</span>，硬编码洛书布局</td></tr>
+      <tr><td>山向正则 <code>_M</code></td><td>前端 24 山字符类（<code>index.html:650</code>）</td><td><code>verifyAIReply</code> 匹配「坐X向Y」</td><td><span class="pill warn">中</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><b>契约脆弱点</b>：<code>order=[4,9,2,3,5,7,8,1,6]</code> 把洛书布局烧进前端。引擎若改用「随坐山旋转」的 <code>rotatedPalaceGrid</code>（<code>@soul-atelier/core/palaces.ts</code> 已导出该能力但 <code>mingyu-core</code> 未使用），前端九宫格会整体错位且<b>不报错</b>。</div>
+
+  <h3>2.3 一次完整数据流（含两个断点）</h3>
+<pre><code>用户开启权限
+  → getUserMedia(后置摄像头) + geolocation + DeviceOrientation.requestPermission
+  → 选环境(室外/室内) → 选站位(门外定向/立极环拍/区域复查)
+  → 罗盘稳定 1.5s
+  → lockAndAnalyze()
+      ├ isAnalyzing = true
+      ├ captureSequence()                    ← 【断点1：currentHeading 在此被改写】
+      │   ├ 按当前朝向顺时针排序 8 方位
+      │   ├ 逐个 ±12° 稳定 0.8s → captureFrame() (canvas 720px, JPEG q0.8)
+      │   └ 全部完成 → return {frames, missed}
+      ├ 读 currentHeading 组 reqBody          ← 【断点2：读到的是最后一个方位角】
+      ├ POST /api/horosa
+      │   ├ 校验 heading ∈ [0,360]、year 必填
+      │   ├ northReference==='magnetic' → 必须有 lat/lng → getDeclination() (WMM)
+      │   ├ generateResidentialFengshui()
+      │   │   ├ resolveResidentialOrientation → 真北换算 → 二十四山
+      │   │   ├ buildBazhai   → 立春换年 → 命卦 → 大游年
+      │   │   ├ buildXuanKong → 运盘 → 山向盘 → 局型 → 组合 → 城门诀 → 流年
+      │   │   └ buildEvidencePrompt / buildPrompt
+      │   └ 返回 { status, meta, data }
+      ├ enginePanel(hData) 渲染九宫格
+      ├ window.__lastHorosa = {orientationText, mingGua}   ← 供幻觉核对
+      ├ [可选] POST /api/map → 高德静态图 base64
+      ├ 组装 9 图 + promptText → callAIStream()
+      ├ advicePanel + remindersPanel
+      └ saveMemoryRecord(localStorage，保留 2 条)</code></pre>
+
+  <h3>2.4 校验体系：引擎侧严密，前端侧真空</h3>
+  <div class="tw"><table>
+    <thead><tr><th>层</th><th>校验手段</th><th>评价</th></tr></thead>
+    <tbody>
+      <tr><td>引擎</td><td><code>heading</code> 范围/有限性、<code>year</code> 必填、磁北必带磁偏角、磁偏角 ∈[-30,30]、不确定度 ∈[0,45]、坐向严格相差 180°、坐山与度数一致、替卦须山向稳定且在兼向区</td><td><span class="pill ok">优秀</span> 错误全部抛为可读中文</td></tr>
+      <tr><td>引擎</td><td>分界线敏感度 → <code>candidateMountains</code> 候选并列 + <code>stability: '山向边界敏感'</code></td><td><span class="pill ok">优秀</span> 把不确定性显式化而非隐藏</td></tr>
+      <tr><td>后端</td><td><code>content-length &gt; 8MB</code> → 413</td><td><span class="pill bad">失效</span> 阈值高于平台上限，见 P0-2</td></tr>
+      <tr><td>前端</td><td>罗盘无有效数据时 <code>return</code> 避免误锁 0°（<code>index.html:688</code>）</td><td><span class="pill ok">良好</span></td></tr>
+      <tr><td>前端</td><td>采集轮数上限 3 轮（<code>index.html:1125</code>）</td><td><span class="pill ok">良好</span> 但不保证请求体不超限</td></tr>
+      <tr><td>联动</td><td>幻觉机器核对：正则提取 AI 回复中的山向/命卦断言，与引擎结果比对</td><td><span class="pill ok">优秀设计</span> 但只核对两项</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>2.5 优势与代价（事实与评价分离）</h3>
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>优势</th><th>代价</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>引擎优先的架构自觉</b><br>13 条铁律开篇即写「排盘数据是纲领与权威依据，禁止自行重算或改写任何星盘数字」</td><td>AI 被完全约束为「讲解员」，丧失对图像的独立判断力；<b>排盘错时 AI 被强制复述错误数字</b>，机器核对还会亮「一致」黄牌</td></tr>
+      <tr><td>2</td><td><b>测量不确定性被当作一等公民建模</b><br>按拉线长度动态算 <code>atan(6/dist)</code>，跨二十四山界时列候选盘 + 强制复测</td><td>精度声明越严谨，用户越难得到「确定答案」，产品感知上「每次都在提醒我不够准」</td></tr>
+      <tr><td>3</td><td><b>磁偏角不硬编码为 0</b><br>明确拒绝「缺 GPS 就按 0 算」，返回 400 并说明北京偏差近 7.5° 足以错判一整山</td><td><b>室内 / 无定位场景 100% 不可达</b>，没有降级路径</td></tr>
+      <tr><td>4</td><td><b>SSE 行缓冲 + 300ms 节流</b><br>解决分包截断与长思考 O(n²) 卡顿</td><td><code>aiDiv.innerHTML +=</code> 逐段拼接，每 300ms 触发整块解析；超长回复（65536 tokens）仍会卡</td></tr>
+      <tr><td>5</td><td><b>思考流不实时展示 + 心跳提示</b></td><td>上游若不支持流式 <code>reasoning_content</code>（思考期完全静默），<b>45s 看门狗必杀</b></td></tr>
+      <tr><td>6</td><td><b>证据链设计罕见地严谨</b><br><code>analyzeCompassDirection</code> 把「计算步骤 / 方位事实 / 限制事实」分开记录，每条带 <code>limitation</code></td><td>这套严谨性在后端被浪费——返回给前端的 <code>evidenceAnalysis</code> <b>前端完全没用</b>，只取了 <code>prompt</code> 字符串</td></tr>
+      <tr><td>7</td><td><b>README 风险清单诚实</b><br>主动列出无鉴权、WMM 2029 过期、API Key XSS 面、AGPL 传染性</td><td>诚实但无用——这四条只有开发者看，而部署者往往就是用户自己</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>2.6 被浪费的引擎能力（8 个字段）</h3>
+  <p>引擎提供了大量高质量结构化字段，前端只用了极小一部分：</p>
+  <div class="tw"><table>
+    <thead><tr><th>引擎字段</th><th>内容</th><th>前端使用情况</th></tr></thead>
+    <tbody>
+      <tr><td><code>evidenceAnalysis</code></td><td>分类证据链（计算步骤 / 事实 / 限制）</td><td><span class="pill bad">未使用</span></td></tr>
+      <tr><td><code>xuankong.replacement</code></td><td>替卦起星明细（参考山、替星、顺逆、来源 URL）</td><td><span class="pill bad">未使用</span></td></tr>
+      <tr><td><code>xuankong.plates</code></td><td>原始三盘数组</td><td><span class="pill bad">未使用</span></td></tr>
+      <tr><td><code>xuankong.daoShanXiang</code></td><td>到山到向结构化判断</td><td><span class="pill warn">仅在 prompt 字符串里</span></td></tr>
+      <tr><td><code>bazhai.directionMeasurement</code></td><td>分界线距离、候选宅卦、复测警示</td><td><span class="pill bad">未使用</span>（前端另建 <code>STAR_RULES</code> 硬编码表替代）</td></tr>
+      <tr><td><code>bazhai.gasRegulation</code></td><td>五黄二黑压制规则</td><td><span class="pill bad">未使用</span></td></tr>
+      <tr><td><code>castleGate.candidates</code></td><td>城门候选明细（正城门 / 副城门、山、旺星）</td><td><span class="pill warn">仅用 summary 一句</span></td></tr>
+      <tr><td><code>combinations[].palaces</code></td><td>组合所在宫位</td><td><span class="pill bad">未使用</span>（只显示名称列表）</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><b>后果</b>：引擎辛辛苦苦算出的「某山向有 2 个候选盘」「某宫存在单宫反吟」这些<b>降低确定性但提高正确性</b>的信息，在前端全部丢失。用户看到的是一个斩钉截铁的单一答案，而实际上测量处在边界敏感区。<b>当前状态是最危险的</b>——引擎诚实地说「我有 2 个候选盘」，前端把这句话丢了。</div>
+</section>
+
+<!-- ============ 3 知识判伪 ============ -->
+<section id="s3">
+  <h2><span class="no">3</span>知识专业性判伪</h2>
+  <p class="lead">17 项逐条核验：源码逐行阅读 + 独立脚本实跑 + 通行典籍口径三源交叉。</p>
+
+  <figure>
+    <img src="svg/03-知识判伪矩阵.svg" alt="知识判伪矩阵">
+    <figcaption>图 2 · 知识判伪矩阵：13 项通过 / 2 项不通过 / 1 项口径缺失 / 1 项伪疑点已排除</figcaption>
+  </figure>
+
+  <figure>
+    <img src="svg/05-知识可信度画像.svg" alt="知识可信度画像">
+    <figcaption>图 3 · 八维度知识可信度画像：算法层专业（A/A-），表达层不专业（C/C+）</figcaption>
+  </figure>
+
+  <h3>3.1 判伪通过项（13 项，择要详证）</h3>
+
+  <h4>① 飞星飞布：洛书路径正确</h4>
+<pre><code>export function flyChart(center, direction) {
+  for (const palace of PALACES) {
+    const offset = (((palace.luoshu - 5) % 9) + 9) % 9;
+    const raw = direction === "forward" ? center + offset : center - offset;
+    result[palace.key] = wrap1to9(raw);
+  }
+}</code></pre>
+<p>洛书数与偏移：坎1→(-4)≡5、坤2→6、震3→7、巽4→8、中5→0、乾6→1、兑7→2、艮8→3、离9→4。顺飞时中宫 5 起步：乾得 5+1、兑 5+2、艮 5+3、离 5+4、坎 5+5、坤 5+6、震 5+7、巽 5+8。</p>
+<p><b>这正是三元九运飞星的标准顺逆路径</b>（中→乾→兑→艮→离→坎→坤→震→巽）。九运运盘 9 入中：乾1、兑2、艮3、离4、坎5、坤6、震7、巽8、中9 —— 与实测输出一致。</p>
+
+  <h4>② 下卦顺逆判定：最见功力的部分</h4>
+<pre><code>function directionFor(centerStar, source) {
+  const yinYang = centerStar === 5
+    ? source.yinYang                                    // 五黄无卦，借坐山本身阴阳
+    : mountainOf(palaceByLuoshu(centerStar).key, source.yuan).yinYang;
+  return yinYang === "yang" ? "forward" : "reverse";
+}</code></pre>
+<p>传统规则：入中之星（如 3 碧）本宫在震，取震宫中与<b>原坐山同元龙</b>之山（甲/卯/乙）定阴阳。此处 <code>source.yuan</code> 正是坐山的元龙索引，<code>mountainOf(palaceByLuoshu(3).key, yuan)</code> 即取震宫同元山。<b>逻辑完全正确</b>——这是玄空排盘最容易出错的地方。</p>
+
+  <h4>③ 替卦起星：与歌诀逐字对应</h4>
+<p><code>SUBSTITUTE_STAR_POEM</code> 引《地理辨正》/沈氏：</p>
+<blockquote style="margin:0 0 14px;padding:12px 18px;border-left:3px solid var(--accent);background:#f8fafc;color:var(--ink2);font-size:14px">
+子癸并甲申，贪狼一路行；壬卯乙未坤，五位为巨门；<br>
+乾亥辰巽巳，连戌武曲名；酉辛丑艮丙，天星说破军；<br>
+寅午庚丁上，右弼四星临。
+</blockquote>
+<p><code>TWENTY_FOUR_MOUNTAIN_SUBSTITUTES</code> 表：子癸甲申=1、壬卯乙未坤=2、辰巽巳戌乾亥=6、艮丙辛酉丑=7、寅午庚丁=9。<b>逐字核对无误</b>。</p>
+<p>更难得的是 <code>resolveReplacementLeg()</code> 保留了起星的完整推导链（原入中星 → 本宫同元龙参考山 → 替星 → 顺逆），并在 <code>replacement</code> 对象里附带 <code>sourceUrl</code> 和 <code>verificationSourceUrl</code> 两个可核查来源。<b>这在开源实现中极罕见。</b></p>
+
+  <h4>④ 紫白流年：实跑验证 2019–2036</h4>
+<pre><code>2019 八白 │ 2020 七赤 │ 2021 六白 │ 2022 五黄 │ 2023 四绿 │ 2024 三碧
+2025 二黑 │ 2026 一白 │ 2027 九紫 │ 2028 八白 │ 2029 七赤 …</code></pre>
+<p>严格 9 年递推无跳变、无错位。2026 年一白入中与项目测试断言一致。</p>
+
+  <h4>⑤ 五气口径</h4>
+<pre><code>const offset = (star - yun + 9) % 9;
+if (offset === 0) return '当运';
+if (offset <= 2) return '生气';
+if (offset <= 4) return '死气';
+if (offset <= 7) return '煞气';
+return '退气';</code></pre>
+<p>与《玄空风水学》九运表一致。注释还特别指出「合十是另一种关系，不能用来推导死气」——<b>说明作者踩过坑</b>。</p>
+
+  <h3>3.2 判伪不通过项详证</h3>
+
+  <h4 style="color:#b91c1c">❌ 问题 1：九运 / 八运分界未按立春（P1，引擎层）</h4>
+<pre><code>const PERIOD_BASE_YEAR = 1864;
+export function resolveXuanKongPeriod(year) {
+  const offset = y - PERIOD_BASE_YEAR;
+  const cycleIndex = ((Math.floor(offset / 20) % 9) + 9) % 9;
+  const yun = cycleIndex + 1;
+  ...
+}</code></pre>
+<p>引擎自己也知道这是近似——<code>@soul-atelier/core/period.ts</code> 注释明确写：</p>
+<blockquote style="margin:0 0 14px;padding:12px 18px;border-left:3px solid var(--accent);background:#f8fafc;color:var(--ink2);font-size:13.5px">
+Note: the boundary is technically 立春 of the start year, not Jan 1. This uses the Gregorian year; for a date near 立春 of a 运-boundary year, use calendar's <code>periodFromDate(y, m, d, engine)</code>, which resolves the boundary astronomically.
+</blockquote>
+<p><b>实跑验证</b>：<code>resolveXuanKongPeriod(2023)</code> → 下元8运；<code>(2024)</code> → 下元9运；2024 立春精确时刻 = <b>2024年2月4日 16:27:07</b>。</p>
+<p>一栋 <b>2024 年 1 月 15 日</b>建成的房子，引擎判为<b>九运</b>；按传统立春换运口径，2024-02-04 16:27 之前仍属<b>八运</b>。整张盘的运星、山向盘顺逆、局型、城门全部错。</p>
+<p><b>影响面</b>：每年只有 1 月 1 日 ~ 立春（约 34 天）建造的房子受影响。概率低，但因为<b>玄空盘错一星则全盘作废</b>，后果是灾难性的而非渐进的。</p>
+<p><b>加重因素</b>：同一个项目里，八宅命卦<b>严格按立春判定</b>（<code>SolarTerm.fromIndex(year, 3)</code>）。用户填「2024-01-15 建造 + 1990-01-15 出生」，得到的是<b>八运盘 + 1989 年命卦</b>——两个时间标准混用，而项目对此<b>零提示</b>。</p>
+
+  <h4 style="color:#b91c1c">❌ 问题 2：九星宜忌表生克方向矛盾（P1）</h4>
+<pre><code>const STAR_RULES = {
+  ...
+  6: { name: '六白武曲', tag: '吉', yi: '利事业权威，宜金属饰品',
+       buyi: '忌红色火性物品（火克金）' },   // ← 方向写反
+  ...
+};</code></pre>
+<p><b>引擎实算</b>：<code>resolveShanXiangRelation(6, 9)</code> 返回 <code>克入</code>——依 <code>FLYING_STAR_WUXING</code>，6=金、9=火，<code>isKe(mountain, facing)</code> 即 6金克9火 成立。</p>
+<p><b>矛盾点</b>：引擎说金克火（即火不受欢迎，金才是主导），前端说「忌火」。两者结论方向一致，但<b>理由陈述错误</b>——「火克金」是错的，应该是「金克火」。更要命的是同一页面 <code>remindersPanel</code> 同时会渲染引擎算出的 <code>shanXiangRelation</code>（「克出」），AI 收到的是「山星6金克向星9火」+「忌火」两条信息，会自行调和出一个扭曲的解释。</p>
+<div class="tw"><table>
+  <thead><tr><th>星</th><th>项目写法</th><th>通行口径常见写法</th><th>存疑点</th></tr></thead>
+  <tbody>
+    <tr><td>2 二黑病符</td><td>忌久坐久卧，保持整洁干燥</td><td>坤艮为病符，宜静不宜动</td><td>「整洁干燥」属峦头建议混入理气表</td></tr>
+    <tr><td>5 五黄廉贞</td><td>忌动土装修、红黄色饰品、长期坐卧</td><td>五黄忌动土是共识；「忌红黄」仅部分流派</td><td>红色属火，火生土，理论上助土而非助煞，流派差异大</td></tr>
+    <tr><td>7 七赤破军</td><td>防口舌盗失，宜静不宜动</td><td>七赤为口舌金</td><td>方向可接受</td></tr>
+    <tr><td>9 九紫右弼</td><td>忌污秽杂物堆压</td><td>九紫喜庆宜明</td><td>可接受</td></tr>
+  </tbody>
+</table></div>
+<p><b>根因</b>：项目在架构上强调「理气唯一来源是引擎」，却在理气层之外<b>又建了一张前端硬编码的表</b>，且这张表没有任何出处标注。<code>remindersPanel</code> 标注「依据引擎盘面与通行星性口径推导（非AI生成）」——后者是<b>误导性标注</b>，因为九星宜忌部分完全来自本地常量，与引擎无关。</p>
+
+  <h4 style="color:#b45309">⚠️ 问题 3：命卦数算法口径未声明（P2）</h4>
+<pre><code>const remainder = positiveModulo(birthYear, 9);
+const rawNumber = gender === 'male'
+  ? normalizeMingGuaNumber(11 - remainder)
+  : normalizeMingGuaNumber(4 + remainder);
+const number = rawNumber === 5 ? (gender === 'male' ? 2 : 8) : rawNumber;</code></pre>
+<p><b>实跑对照</b>（引擎 vs 民间常用「数字和法：男 10−S、女 5+S」）：</p>
+<div class="tw"><table>
+  <thead><tr><th>出生</th><th>性别</th><th>引擎</th><th>数字和法</th><th>是否一致</th></tr></thead>
+  <tbody>
+    <tr><td>1990</td><td>男</td><td><b>坎</b>（东四命）</td><td>离</td><td><span class="pill bad">❌</span></td></tr>
+    <tr><td>1990</td><td>女</td><td><b>艮</b>（西四命）</td><td>乾</td><td><span class="pill bad">❌</span></td></tr>
+    <tr><td>1984</td><td>男</td><td><b>兑</b>（西四命）</td><td>乾</td><td><span class="pill bad">❌</span></td></tr>
+    <tr><td>1984</td><td>女</td><td><b>艮</b>（西四命）</td><td>离</td><td><span class="pill bad">❌</span></td></tr>
+    <tr><td>2000</td><td>男</td><td><b>离</b>（东四命）</td><td>艮</td><td><span class="pill bad">❌</span></td></tr>
+    <tr><td>2000</td><td>女</td><td><b>乾</b>（西四命）</td><td>兑</td><td><span class="pill bad">❌</span></td></tr>
+  </tbody>
+</table></div>
+<p><b>6/6 全部不同。</b>引擎用的是「年份除 9 取余 + 11/4」（部分流派使用的算法，与三元九运体系自洽）；数字和法是另一派。<b>两者都是通行口径</b>，但结果几乎完全不同——命卦决定四吉四凶方，等于整套人宅层结论全变。</p>
+<p>项目的问题不是「算错了」，而是「没告诉用户自己算的是哪一派」。<code>buildPrompt</code> 只输出「命卦${gua}（${group}）」，<b>没有任何 <code>method</code> / <code>source</code> 字段</b>。</p>
+
+  <h4 style="color:#64748b">⊘ 问题 4：立春比较的时间基准（伪疑点，已排除）</h4>
+<p>实跑：<code>createUtcTimestamp(2024,1,4,12)</code> 返回 <code>1707048000000</code>（毫秒），<code>lichunCivil</code> 返回 <code>1707064027000</code>。<code>1707064027</code> 秒 = <code>2024-02-04T08:27:07Z</code>，即<b>东八区 16:27:07</b>；出生时间戳 <code>1707048000</code> = <code>2024-02-04T04:00:00Z</code> = <b>东八区 12:00</b>。两者同为 UTC 基准，比较自洽。</p>
+<p><b>结论：立春比较的时间基准正确</b>（<code>createUtcTimestamp</code> 虽名为 Utc，实际接收的是 tyme4ts <code>SolarTime</code> 的本地钟面时分秒，两侧同源可比）。<b>已排除此项为缺陷。</b></p>
+<p>但仍有一处精度局限：出生只精确到「当日正午 12:00」，不含出生时辰。若某人出生于立春当日 16:00（立春在 16:27 前 27 分钟），引擎用 12:00 代表他，判为「未过立春」→ 归上一年命卦。<b>误差窗口 = 立春时刻到当日正午之间。</b></p>
+
+  <h3>3.3 AI 提示词中的知识性风险</h3>
+  <p><code>SYSTEM_INSTRUCTION</code>（<code>index.html:317-338</code>）的 13 条铁律在<b>约束 AI 幻觉</b>上设计优秀，但在<b>知识准确性</b>上有隐患：</p>
+  <div class="tw"><table>
+    <thead><tr><th>条款</th><th>风险</th></tr></thead>
+    <tbody>
+      <tr><td>铁律 A「禁止自行重算或改写任何星盘数字」</td><td>排盘错时（P0-1）AI 被强制复述错误数字，机器核对也会亮「一致」黄牌</td></tr>
+      <tr><td>铁律 H「室内：坐向一律以引擎排盘为准、禁止凭画面自行改判」</td><td>室内立极环拍时，引擎排盘来自<b>本次采集的漂移值</b>，AI 看到画面朝向与排盘矛盾却必须沉默</td></tr>
+      <tr><td>铁律 I「输出【重拍请求】」</td><td>兜底路径下 <code>fullReply = reasoningFull</code>（思考流），思考流里出现「重拍」二字会误触发</td></tr>
+      <tr><td>铁律 M「专业词首次出现用括号白话解释」</td><td>与「引擎排盘要点开篇」的结构要求叠加，前 200 字变成术语解释区，体验割裂</td></tr>
+      <tr><td><b>存在两条重复的「K. 回复结构」</b></td><td><code>index.html:331</code> 与 <code>334</code> 完全重复，第一条的「（引擎优先）」是残留。浪费 token</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><b>结构缺陷</b>：提示词编号为 A→M，但 K 出现两次、L 在 K 之后，实际顺序是 A B C D E F G H I J <b>K K</b> L M。虽不影响执行，但说明这段 2000+ 字的提示词是<b>多次追加拼出来的，缺乏整体整理</b>。</div>
+
+  <h3>3.4 勘测记忆的知识污染风险</h3>
+<pre><code>saveMemoryRecord({
+  ts: new Date().toLocaleString('zh-CN'),
+  mode: surveyText(),
+  orientationText: sf,               // ← 来自引擎，可能已错卦
+  periodLabel: tp,
+  mingGua: hData.bazhai ? hData.bazhai.mingGua : null,
+  summary: (reply || '').replace(/<[^>]+>/g, '').slice(0, 200),   // ← 来自 AI
+});</code></pre>
+<p>记忆（2 条本轮 + 前次）会被拼进下一次的用户 prompt，并按铁律 J 要求 AI「像复诊的老医师一样先回顾既往结论」。风险：</p>
+  <ul>
+    <li><code>orientationText</code> 存入<b>可能已错卦的坐向</b>，下一轮会被当作「既往结论」注入</li>
+    <li><code>summary</code> 是<b>未经验证的 AI 文本</b>，无任何标记就成为下一轮的「记忆」</li>
+    <li>铁律 J 说「记忆与本轮实测冲突时以本轮为准」——但 <code>verifyAIReply</code> <b>只核对坐向与命卦，不核对记忆里的星盘结论</b></li>
+  </ul>
+</section>
+
+<!-- ============ 4 P0 ============ -->
+<section id="s4">
+  <h2><span class="no">4</span>P0 致命问题详证</h2>
+  <p class="lead">4 个问题，全部已在本地复现或代码路径确认。</p>
+
+  <figure>
+    <img src="svg/02-P0采集污染坐向.svg" alt="P0-1 采集污染坐向">
+    <figcaption>图 4 · P0-1 完整证据链与 5 组偏差实测数据，以及「为什么用户看不出来」的三重原因</figcaption>
+  </figure>
+
+  <div class="issue p0">
+    <h4><span class="pill p0">P0-1</span>采集过程污染坐向基准 <span class="tag">index.html:778 → 794 · 本次分析最严重的发现</span></h4>
+    <pre><code>// index.html:764-778  lockAndAnalyze()
+isAnalyzing = true;
+appendLog(`📍 基准锁定 ${currentHeading.toFixed(1)}°。${surveyText()}`);   // ① 记录基准
+const cap = await captureSequence();                                        // ② 采集，改变 currentHeading
+if (!cap) return;
+...
+// index.html:793-797  组装请求
+const reqBody = {
+    heading: currentHeading,        // ③ 读到的已是最后一个采集方位
+    northReference: usedMapCalibration ? 'true' : 'magnetic',
+    ...
+};</code></pre>
+    <p><code>captureSequence</code> 内部（<code>index.html:732</code>）按当前朝向对八方位排序，用户依次转完，<code>currentHeading</code> 必然停在排序后的最后一格。</p>
+    <div class="tw"><table>
+      <thead><tr><th>基准锁定角</th><th>山</th><th>采集顺序</th><th>采集后 heading</th><th>偏差</th><th>错判山位</th></tr></thead>
+      <tbody>
+        <tr><td>0°</td><td>子</td><td>正北→东北→…→西北</td><td>315°（乾）</td><td><b style="color:#dc2626">45°</b></td><td><span class="pill bad">3 个</span></td></tr>
+        <tr><td>30°</td><td>丑</td><td>东北→正东→…→正北</td><td>0°（子）</td><td><b style="color:#dc2626">30°</b></td><td><span class="pill bad">2 个</span></td></tr>
+        <tr><td>90°</td><td>卯</td><td>正东→东南→…→东北</td><td>45°（艮）</td><td><b style="color:#dc2626">45°</b></td><td><span class="pill bad">3 个</span></td></tr>
+        <tr><td>200°</td><td>丁</td><td>西南→正西→…→正南</td><td>180°（午）</td><td><b style="color:#ea580c">20°</b></td><td><span class="pill warn">1~2 个</span></td></tr>
+        <tr><td>275°</td><td>酉</td><td>西北→正北→…→正西</td><td>270°（酉）</td><td><b style="color:#16a34a">5°</b></td><td><span class="pill ok">0 个</span></td></tr>
+      </tbody>
+    </table></div>
+    <p><b>为什么发现不了</b>：① <code>headingVal</code> 显示实时 heading，采集完显示最后一个方位角，而 <code>mountain-name</code> 早已在 <code>index.html:842</code> 被排盘结果覆盖为「×山(排盘)」——用户看到的是「排盘」字样，不会意识到它来自错误输入；② 引擎对错误 heading 与正确 heading <b>处理完全一样</b>；③ 即使落在分界线附近，<code>measurement.warnings</code> 也<b>没有传给前端</b>。</p>
+    <h4 style="color:var(--ok)">修复方案（约 5 行）</h4>
+<pre><code>async function lockAndAnalyze() {
+    // ... apiKey 校验
+    isAnalyzing = true;
+    logPanel.innerHTML = '';
+    analysisRound = 1;
+    retakeBtn.style.display = 'none';
+
+    // ★ 修复：在采集前冻结基准角
+    const baseHeading = currentHeading;
+    const baseMountain = getMountain(baseHeading);
+    appendLog(`📍 基准锁定 ${baseHeading.toFixed(1)}°（${baseMountain}山）。${surveyText()}`);
+
+    const cap = await captureSequence();
+    if (!cap) return;
+
+    // ★ 修复：采集后恢复基准角，避免残留状态影响显示与后续
+    currentHeading = baseHeading;
+    smoothedHeading = baseHeading;
+    headingVal.innerText = baseHeading.toFixed(1);
+
+    const reqBody = { heading: baseHeading, ... };   // ★ 用 baseHeading
+}</code></pre>
+    <p><b>验证方法</b>：修复后重复上述模拟，<code>reqBody.heading</code> 应恒等于基准锁定角。</p>
+  </div>
+
+  <div class="issue p0">
+    <h4><span class="pill p0">P0-2</span>请求体守卫阈值高于平台上限 <span class="tag">api/index.js:34-38</span></h4>
+<pre><code>// 请求体大小防护：Vercel 函数体上限约 4.5MB，多轮图片历史可能累积超限
+const contentLength = Number(req.headers['content-length'] || 0);
+if (contentLength > 8 * 1024 * 1024) {
+  return res.status(413).json({ error: '请求体过大（>8MB）...' });
+}</code></pre>
+    <p><b>注释自己说 4.5MB，代码设 8MB</b>——守卫永远不会被触发，因为请求在到达这段代码之前就被 Vercel 平台层拒绝了。</p>
+    <div class="tw"><table>
+      <thead><tr><th>轮次</th><th>累计帧数</th><th>估算 base64 总量</th><th>结果</th></tr></thead>
+      <tbody>
+        <tr><td>第 1 轮</td><td>8</td><td>~875 KB</td><td><span class="pill ok">正常</span></td></tr>
+        <tr><td>第 2 轮（补拍）</td><td>16</td><td>~1,750 KB</td><td><span class="pill ok">正常</span></td></tr>
+        <tr><td>第 3 轮（补拍）</td><td>24</td><td>~2,625 KB</td><td><span class="pill warn">逼近上限</span></td></tr>
+        <tr><td>4 轮 / 更大图 / 加外局图</td><td>32+</td><td>&gt;3,500 KB</td><td><span class="pill bad">可能超限</span></td></tr>
+      </tbody>
+    </table></div>
+    <p><code>chatHistory</code> 会把<b>所有轮次的 base64 全部保留</b>（<code>index.html:1138-1142</code>），且每次提问都重发整个历史。<b>用户可见后果</b>：等了两分钟，看到红色「分析中断: …413」。</p>
+    <h4 style="color:var(--ok)">修复方案</h4>
+    <ol>
+      <li><b>守卫改到 4MB</b>（留 500KB 余量给 JSON 包装），错误文案改为可操作指引：<code>'请求体过大。请点🔄重新勘测以清空图片历史，或减少补拍轮次。'</code></li>
+      <li><b>前端图片压缩</b>：720px → 512px，JPEG 质量 0.8 → 0.65，单帧从 ~110KB 降到 ~45KB</li>
+      <li><b>历史图片裁剪</b>：只保留最近 2 轮的 base64，更早的替换为文字摘要</li>
+      <li><b>前端预检</b>：发请求前用 <code>JSON.stringify(body).length</code> 估算，超限则本地提示，不浪费 2 分钟等待</li>
+    </ol>
+  </div>
+
+  <div class="issue p0">
+    <h4><span class="pill p0">P0-3</span>室内模式的坐向来源错误 <span class="tag">index.html:764-778</span></h4>
+    <p>站位指引提供三种模式，但只有一种有合理坐向来源：</p>
+    <div class="tw"><table>
+      <thead><tr><th>模式</th><th>环境</th><th>引导文案</th><th>实际坐向来源</th></tr></thead>
+      <tbody>
+        <tr><td><code>orientation</code> 门外定向</td><td>室外</td><td>站在大门正前方 2-3 米，镜头正对大门</td><td><span class="pill ok">✅ 合理</span>（镜头朝向≈坐向的反向，即向）</td></tr>
+        <tr><td><code>interior</code> 立极环拍</td><td>室内</td><td>站在平面中心点，依次对准八方位</td><td><span class="pill bad">❌ 无有效坐向来源</span></td></tr>
+        <tr><td><code>zone</code> 区域复查</td><td>室内</td><td>靠近待查区域 1-1.5 米</td><td><span class="pill bad">❌ 同上，且不应重新排盘</span></td></tr>
+      </tbody>
+    </table></div>
+    <p>室内模式的核心动作是「环拍」，用户站位和朝向是任意的。第一次自动锁定时 <code>currentHeading</code> 是用户<b>恰好面朝的方向</b>（可能是卧室床的方向），这个角度被当作坐向发给引擎 → 排出一个完全无意义的盘。而铁律 H 明确要求「室内：坐向一律以引擎排盘为准、禁止凭画面自行改判」，于是 AI 拿到一个随机坐向的权威排盘，还被禁止质疑。</p>
+    <h4 style="color:var(--ok)">修复方案</h4>
+    <ol>
+      <li><b>室内模式强制复用已锁定的室外坐向</b>。进入时检查 <code>localStorage.HOROSA_SITUATING</code> 是否已有经确认的坐向，没有则提示「请先在室外完成坐向定向」并提供跳转</li>
+      <li><code>zone</code> 区域复查<b>不重新排盘</b>，只把新帧追加到已有 <code>hData</code> 的解读中</li>
+      <li>短期兜底：室内模式首次进入时强制走地图拉线模式（<code>isMapMode=true</code>），由用户显式拉线确定真北朝向，不依赖罗盘</li>
+    </ol>
+  </div>
+
+  <div class="issue p0">
+    <h4><span class="pill p0">P0-4</span>无 GPS 时罗盘模式完全不可用 <span class="tag">api/index.js:148-155</span></h4>
+<pre><code>if (ref === 'magnetic') {
+  if (typeof lat !== 'number' || typeof lng !== 'number') {
+    return res.status(400).json({
+      message: '罗盘测向需要 GPS 坐标以计算当地磁偏角（不可硬编码为 0，否则坐向可偏差近 10°）。'
+    });
+  }
+  fengshuiInput.magneticDeclinationDegrees = getDeclination(lat, lng);
+}</code></pre>
+    <p><b>拒绝的动机是正确的</b>（宁可报错也不给错数据），但<b>没有提供替代路径</b>。室内 GPS 可能漂移到几百公里外或直接失败（<code>index.html:1214</code> 只 <code>console.warn</code>），此时 <code>userLat/userLng</code> 为 <code>null</code> → 后端 400 → 用户看到红色报错 → <b>室内勘察这个核心场景 100% 不可达</b>。</p>
+    <h4 style="color:var(--ok)">修复方案</h4>
+    <ol>
+      <li><b>降级链路</b>：无 GPS 时提示「改用地图拉线定向」并<b>自动切换到地图模式</b>（<code>document.getElementById('switch-mode-btn').click()</code>）</li>
+      <li><b>扩大定位超时</b>：<code>getCurrentPosition</code> 改为 <code>{ enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 }</code>，并 <code>await</code> 一个 Promise 让用户有感知</li>
+      <li><b>精度警示</b>：GPS 精度 &gt;50m 时提示「定位精度较低，磁偏角计算可能有偏差」</li>
+      <li><b>手动磁偏角兜底</b>：设置面板增加「手动磁偏角」输入框（带常见城市速查表）</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ 5 P1/P2 ============ -->
+<section id="s5">
+  <h2><span class="no">5</span>P1 / P2 问题清单</h2>
+  <p class="lead">6 个 P1 + 4 个 P2。</p>
+
+  <figure>
+    <img src="svg/04-问题优先级与优化路线.svg" alt="问题优先级与优化路线">
+    <figcaption>图 5 · 14 项问题按优先级分布，及其对应的三阶段实施路线</figcaption>
+  </figure>
+
+  <h3>5.1 问题总表</h3>
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>级别</th><th>问题</th><th>位置</th><th>触发条件</th><th>用户可见后果</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><span class="pill p0">P0</span></td><td><b>采集污染坐向基准</b></td><td class="mono">index.html:778→794</td><td>每次罗盘模式勘测</td><td><b>排盘坐向错 2~3 个山位，全盘作废</b></td></tr>
+      <tr><td>2</td><td><span class="pill p0">P0</span></td><td><b>请求体守卫阈值失效</b></td><td class="mono">api/index.js:36</td><td>2~3 轮补拍后</td><td>平台级 413，用户看到「分析中断」</td></tr>
+      <tr><td>3</td><td><span class="pill p0">P0</span></td><td><b>室内模式坐向来源错误</b></td><td class="mono">index.html:764-778</td><td>选「室内·立极环拍」</td><td>拿室外定向数据当坐向，或用随机朝向排盘</td></tr>
+      <tr><td>4</td><td><span class="pill p0">P0</span></td><td><b>无 GPS 时罗盘模式不可用</b></td><td class="mono">api/index.js:148-155</td><td>室内 / 无定位</td><td>400 报错，<b>核心功能不可达</b></td></tr>
+      <tr><td>5</td><td><span class="pill p1">P1</span></td><td>45s 看门狗误杀深度思考</td><td class="mono">index.html:976-977</td><td>GLM 思考期上游静默</td><td>首次分析直接失败</td></tr>
+      <tr><td>6</td><td><span class="pill p1">P1</span></td><td>思考流被当作正文输出</td><td class="mono">index.html:1096-1102</td><td>GLM 两次重试无正文</td><td>中英混杂推理流冒充解读</td></tr>
+      <tr><td>7</td><td><span class="pill p1">P1</span></td><td>勘测记忆污染后续推理</td><td class="mono">index.html:883-890</td><td>跨会话</td><td>错误坐向被当「既往结论」注入</td></tr>
+      <tr><td>8</td><td><span class="pill p1">P1</span></td><td>九运/八运分界未按立春</td><td class="mono">mingyu-core/xuan_kong</td><td>1/1~立春建造</td><td>整盘运星错（引擎层）</td></tr>
+      <tr><td>9</td><td><span class="pill p1">P1</span></td><td>星性宜忌生克方向错误</td><td class="mono">index.html:600</td><td>排盘含 6/9 星</td><td>AI 收到矛盾指令</td></tr>
+      <tr><td>10</td><td><span class="pill p1">P1</span></td><td>API 无鉴权无限流</td><td class="mono">api/index.js 全局</td><td>公开部署后</td><td>任何人可消耗你的函数配额</td></tr>
+      <tr><td>11</td><td><span class="pill p2">P2</span></td><td>DeepSeek 静默降级为盲算</td><td class="mono">index.html:930-941</td><td>选 DeepSeek</td><td><b>无图像</b>，仅理气，但提示不明显</td></tr>
+      <tr><td>12</td><td><span class="pill p2">P2</span></td><td>单文件 1,233 行承载全部逻辑</td><td class="mono">public/index.html</td><td>—</td><td>无法测试、无法复用</td></tr>
+      <tr><td>13</td><td><span class="pill p2">P2</span></td><td>引擎证据链被丢弃</td><td class="mono">hData.evidenceAnalysis</td><td>—</td><td>边界敏感信息丢失，用户看不到「存在候选盘」</td></tr>
+      <tr><td>14</td><td><span class="pill p2">P2</span></td><td>提示词 K 条重复、编号乱序</td><td class="mono">index.html:331-334</td><td>—</td><td>浪费 token、结构混乱</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>5.2 P1 详证</h3>
+
+  <div class="issue p1">
+    <h4><span class="pill p1">P1-1</span>45s 看门狗误杀深度思考 <span class="tag">index.html:976-977</span></h4>
+<pre><code>let watchdog = setTimeout(() => { streamTimedOut = true; abortCtrl.abort(); }, 45000);
+const resetWatchdog = () => { clearTimeout(watchdog); watchdog = setTimeout(..., 45000); };</code></pre>
+    <p>看门狗按「无输出时长」重置，设计正确。但前提是<b>上游在思考期持续流式输出 <code>reasoning_content</code></b>。若 GLM 部署不支持流式 reasoning（部分企业版 / 代理网关会关闭），或 <code>reasoning_effort: 'high'</code> 下思考阶段本就不吐 token，则 45s 内无任何字节 → 强制 abort。用户配置了 <code>max_tokens: 65536</code> + <code>reasoning_effort: 'high'</code>，本身就是超长请求设计，与 45s 冲突。</p>
+    <p><b>修复</b>：① 两级看门狗——首个字节 60s（首 token 容忍）、之后 30s 无输出才杀；② 思考期就显示「仍在思考（已 Ns）」心跳（<b>现有心跳只在 <code>reasoning_content</code> 到达后才启动，恰在最需要提示的时候不显示</b>）；③ 允许用户调高超时（60/120/180s）。</p>
+  </div>
+
+  <div class="issue p1">
+    <h4><span class="pill p1">P1-2</span>思考流被当作正文输出 <span class="tag">index.html:1096-1102</span></h4>
+<pre><code>if (provider === 'glm' && reasoningSeen) {
+  fullReply = reasoningFull;       // ← 思考流直接当正文
+  fallbackUsed = true;
+  aiDiv.innerHTML += escHtml(fullReply).replace(/\n/g, '<br>');
+  stopThinkingHint('⚠️ 思考完成但未生成正文，已将思考内容作为解读输出（见下方）');
+}</code></pre>
+    <p>虽然标注了警告并跳过机器核对，但：① <code>reasoningFull</code> 是模型内部推理，<b>通常中英混杂、逻辑跳跃</b>，与 System Instruction 要求的结构完全不同；② 它会被写进 <code>chatHistory</code>（<code>index.html:1108</code>），<b>污染后续所有对话上下文</b>；③ <code>saveMemoryRecord</code> 会把它的前 200 字存为「勘测记忆摘要」，成为跨会话的「既往结论」；④ 用户无从判断哪段是「解读」、哪段是「思考」。</p>
+    <p><b>修复</b>：① 兜底改为<b>结构化降级</b>——不直接吐 <code>reasoningFull</code>，而是提示「模型未能生成正式解读，以下为推理过程摘要（仅供参考）」，并把 <code>reasoningFull</code> 只存入 <code>chatHistory</code> 的 metadata 不进正文；② 连续两次失败后<b>停止重试</b>并明确告知用户（当前逻辑会重试到耗尽）；③ <code>saveMemoryRecord</code> 对 <code>fallbackUsed</code> 的结果<b>不写入记忆</b>。</p>
+  </div>
+
+  <div class="issue p1">
+    <h4><span class="pill p1">P1-7</span>勘测记忆污染 <span class="tag">index.html:883-890</span></h4>
+<pre><code>saveMemoryRecord({
+  ts, mode, orientationText, periodLabel, mingGua, summary,
+  verified: !fallbackUsed,                    // ★ 新增
+  engineVersion: hData.xuankong?.engine?.version ?? 'unknown',
+  sitDegree: hData.xuankong?.measurement?.sitDegree ?? null,   // ★ 新增：记录真实度数便于复核
+  mountainConfirmed: false,                    // ★ 新增：是否经用户确认
+});</code></pre>
+    <p>并在 <code>memoryText()</code> 注入时标注可信度：<code>（第1次，引擎已确认，sitDegree=177.5°）</code>。</p>
+  </div>
+
+  <div class="issue p1">
+    <h4><span class="pill p1">P1-10</span>API 无鉴权无限流 <span class="tag">api/index.js 全局 · README 已自行承认</span></h4>
+    <p>补充具体攻击面：</p>
+    <ul>
+      <li><code>/api/ai</code> 是<b>开放代理</b>——任何人可用你的 Vercel 函数转发任意请求到你配置的三家 API。虽然 API Key 由请求方提供（不花你的钱），但会消耗你的<b>函数执行时长与出网流量</b></li>
+      <li><code>/api/map</code> 会用请求方提供的 <code>gaode_key</code> 请求高德——可用于<b>探测他人 Key</b>（虽然响应不回显 Key，但可通过错误信息差异判断 Key 是否存在）</li>
+      <li><code>/api/horosa</code> 是纯计算，成本低但可被批量刷</li>
+    </ul>
+    <p><b>修复</b>：① 引入 Vercel Firewall 限流（按 IP 100 次/小时）；② <code>/api/ai</code> 加同源校验（<code>Origin</code> 头必须匹配部署域名），挡掉跨站滥用；③ 生产环境移除 <code>/api/health</code>（无信息量且暴露技术栈）。</p>
+  </div>
+
+  <h3>5.3 P2 详证</h3>
+
+  <div class="issue p2">
+    <h4><span class="pill p2">P2-11</span>DeepSeek 静默降级 <span class="tag">index.html:930-941</span></h4>
+<pre><code>if (chatHistory.length === 2) {
+  appendLog('⚠️ 提示：您选择了 DeepSeek，该模型不支持视觉，已自动剔除图片数据进行纯理气盲算。', 'system-log');
+}</code></pre>
+    <p>三重问题：① <code>chatHistory.length === 2</code> 只在<b>首次</b>提示，补拍一轮后不再提示；② 「纯理气盲算」意味着<b>用户上传的 8 张照片完全没用上</b>，但用户以为 AI 在看图；③ 选 DeepSeek 的用户很可能不知道 DeepSeek-chat 无视觉能力。</p>
+    <p><b>修复</b>：设置面板把模型选项改为带能力标注的卡片（<code>DeepSeek-chat · 纯文本，不看图</code>），并在选择时立即提示，不要等到分析阶段。</p>
+  </div>
+
+  <div class="issue p2">
+    <h4><span class="pill p2">P2-12</span>单文件 1,233 行 <span class="tag">public/index.html</span></h4>
+    <p>混杂了：CSS 设计系统（200 行）、HTML 结构（200 行）、System Instruction（22 行长字符串）、排盘面板渲染（4 个函数）、罗盘滤波、SSE 解析、AI 重试状态机、勘测记忆、localStorage 存取、8 方位采集状态机。</p>
+    <p><b>至少拆成</b>：<code>styles.css</code> / <code>prompts.js</code>（提示词与铁律）/ <code>compass.js</code>（罗盘与采集）/ <code>panels.js</code>（九宫格/宜忌/建议渲染）/ <code>ai-stream.js</code>（SSE 与重试）/ <code>storage.js</code>（设置与记忆）/ <code>main.js</code>（编排）。</p>
+    <p>收益：<b>可测试</b>（当前无法为任何函数写单测）、可复用、提示词可被独立审阅（现在 2000+ 字藏在一个 template literal 里）。</p>
+  </div>
+
+  <div class="issue p2">
+    <h4><span class="pill p2">P2-13</span>引擎证据链被丢弃</h4>
+    <div class="tw"><table>
+      <thead><tr><th>字段</th><th>内容</th><th>建议用法</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">hData.xuankong.measurement</td><td><code>stability</code>、<code>nearestBoundaryDistanceDegrees</code>、<code>candidateMountains</code>、<code>warnings</code></td><td><b>在九宫格上方显示</b>「⚠️ 当前读数距分界仅 2.3°，可能为子/癸山，建议复测」</td></tr>
+        <tr><td class="mono">hData.evidenceAnalysis</td><td>分类证据链</td><td>折叠面板「查看排盘依据」</td></tr>
+        <tr><td class="mono">hData.xuankong.replacement</td><td>替卦起星明细</td><td>替换下卦时展示推导链</td></tr>
+        <tr><td class="mono">hData.xuankong.combinations[].palaces</td><td>组合所在宫位</td><td>在九宫格对应宫位加角标</td></tr>
+        <tr><td class="mono">hData.bazhai.directionMeasurement</td><td>候选宅卦、宅卦稳定性</td><td>宅卦不稳定时并列展示</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ============ 6 优化路线 ============ -->
+<section id="s6">
+  <h2><span class="no">6</span>优化实施路线</h2>
+  <p class="lead">先修 P0 的两处（各 3~5 行代码），再做 P1 加固，最后才是架构重构。</p>
+
+  <h3>第一阶段：止血（1~2 天，7 处改动，合计约 23 行）</h3>
+  <div class="tw"><table>
+    <thead><tr><th>序</th><th>改动</th><th>文件</th><th>行数</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>冻结并使用 <code>baseHeading</code></b></td><td class="mono">public/index.html</td><td>~5 行</td></tr>
+      <tr><td>2</td><td>请求体守卫 8MB → 4MB</td><td class="mono">api/index.js</td><td>1 行</td></tr>
+      <tr><td>3</td><td>采集分辨率 720→512、质量 0.8→0.65</td><td class="mono">public/index.html</td><td>2 行</td></tr>
+      <tr><td>4</td><td>无 GPS 时自动切地图模式 + 提示</td><td class="mono">public/index.html</td><td>~8 行</td></tr>
+      <tr><td>5</td><td>删除重复的铁律 K</td><td class="mono">public/index.html</td><td>2 行</td></tr>
+      <tr><td>6</td><td><code>fallbackUsed</code> 时不写记忆、不入 history</td><td class="mono">public/index.html</td><td>~4 行</td></tr>
+      <tr><td>7</td><td>修正 <code>STAR_RULES</code> 六白生克表述</td><td class="mono">public/index.html</td><td>1 行</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>第二阶段：准确性加固（3~5 天）</h3>
+  <div class="tw"><table>
+    <thead><tr><th>序</th><th>改动</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>8</td><td>引擎加立春运界</td><td>改用 <code>periodFromDate</code>，无月日时输出边界提示</td></tr>
+      <tr><td>9</td><td>命卦口径声明</td><td>返回值加 <code>method</code> / <code>sourceNote</code>，前端展示</td></tr>
+      <tr><td>10</td><td>测量不确定性透出</td><td>九宫格上方显示 <code>measurement.warnings</code> 与候选山向</td></tr>
+      <tr><td>11</td><td>两级看门狗</td><td>首字节 60s / 无输出 30s，且思考期显示心跳</td></tr>
+      <tr><td>12</td><td>室内模式强制室外定向</td><td>无坐向时引导跳转</td></tr>
+      <tr><td>13</td><td>记忆加 <code>verified</code> 标记</td><td>不可信记忆不注入或标注注入</td></tr>
+      <tr><td>14</td><td>前端请求体预检</td><td>本地估算，超限立即提示</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>第三阶段：架构重构（1~2 周）</h3>
+  <div class="tw"><table>
+    <thead><tr><th>序</th><th>改动</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>15</td><td>拆分 <code>index.html</code> 为 ES modules</td><td>7 个模块，见 P2-12</td></tr>
+      <tr><td>16</td><td><code>STAR_RULES</code> 迁入引擎</td><td>让「确定性输出」的标注名副其实，每条标流派依据</td></tr>
+      <tr><td>17</td><td>API 限流 + 同源校验</td><td>Vercel Firewall + Origin 检查</td></tr>
+      <tr><td>18</td><td>前端补 E2E 测试</td><td>Playwright 覆盖「采集→排盘」链路（当前测试盲区）</td></tr>
+      <tr><td>19</td><td>隐私政策与同意流程</td><td>首次启动时明示「照片将上传至 X 服务商」</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="verdict b" style="margin-top:22px">
+    <div class="t">如果只能做一件事</div>
+    <p>做 P0-1 的 5 行改动。冻结 <code>baseHeading</code>。<br>
+    <span style="font-weight:400;font-size:14.5px;opacity:.92">它是唯一一个「不改这 5 行，其他所有优化都建立在错误输入上」的问题。</span></p>
+  </div>
+</section>
+
+<!-- ============ 7 验收 ============ -->
+<section id="s7">
+  <h2><span class="no">7</span>验收清单</h2>
+  <p class="lead">修复后应能通过以下 10 项检查。</p>
+  <ul class="check">
+    <li>罗盘模式连续 10 次勘测，<code>reqBody.heading</code> 恒等于基准锁定角</li>
+    <li>3 轮补拍后请求体 &lt; 4MB，不再出现平台 413</li>
+    <li>飞行模式（无 GPS）下点击罗盘勘测，能自动切到地图模式并给出可执行指引</li>
+    <li>室内模式进入时若无坐向，提示先做室外定向而非直接排盘</li>
+    <li>GLM <code>reasoning_effort: high</code> + 65536 tokens，思考 60s 不断线</li>
+    <li>构造 GLM 两次无正文场景，<code>chatHistory</code> 中不出现 <code>reasoning_content</code></li>
+    <li>2024-01-15 建造的房子排为八运（若引擎加立春支持）</li>
+    <li>读数落在分界线 ±3° 内，界面显示候选山向与复测提示</li>
+    <li><code>localStorage.HOROSA_MEMORY</code> 中每条记录含 <code>verified</code> 与 <code>sitDegree</code></li>
+    <li>全站 grep 不出现重复的「铁律 K」</li>
+  </ul>
+
+  <h3>附：分析方法说明</h3>
+  <div class="note">
+    <b>四源交叉验证</b>：① 源码逐行阅读（本体 + <code>mingyu-core</code> + <code>@soul-atelier/*</code> 全部关键模块）；② 独立验证脚本实跑（磁偏角符号、紫白流年表、九运全表、立春分界、命卦口径、八方位 heading 漂移模拟、运行时风险）；③ 通行典籍口径对照（《沈氏玄空学》《玄空风水学》《地理辨正》）；④ <code>node test-engine.mjs</code> 实跑 23/23 通过。<br><br>
+    <b>局限说明</b>：外部典籍来源 URL 未能通过网络核实（当前环境无检索工具），故判伪以「源码 + 实跑 + 通行口径」三源交叉为准；<code>public/index.html</code> 的 2000+ 字提示词为单字符串，未逐句拆解每条铁律的语义质量；<code>gen-icons.mjs</code> 与 <code>manifest.json</code> 未深入分析（PWA 细节非本次关注重点）。<br><br>
+    <b>仓库状态</b>：分析全程只读，<code>git diff --stat</code> 输出为空，临时验证脚本已清理。
+  </div>
+</section>
+
+<div class="foot">
+  <p><b>horosa-fengshui 深度拆解分析报告</b> · 2026-10-04 · 分析对象：本地仓库 HEAD <code>f7ddc6a</code>，24 次提交<br>
+  配套明细文档：<code>analysis/horosa-fengshui架构实现分析.md</code> · <code>analysis/horosa-fengshui知识专业性判伪报告.md</code> · <code>analysis/horosa-fengshui用户问题清单与优化建议.md</code></p>
+</div>
+
+</div>
+
+<script>
+const secs=[...document.querySelectorAll('section')];
+const links=[...document.querySelectorAll('nav a')];
+const obs=new IntersectionObserver(es=>{
+  es.forEach(e=>{
+    if(e.isIntersecting){
+      links.forEach(l=>l.classList.toggle('on', l.getAttribute('href')==='#'+e.target.id));
+    }
+  });
+},{rootMargin:'-20% 0px -70% 0px'});
+secs.forEach(s=>obs.observe(s));
+</script>
+</body>
+</html>

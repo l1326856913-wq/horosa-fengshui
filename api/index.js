@@ -16,6 +16,51 @@ function getDeclination(lat, lng) {
   return info.decl;
 }
 
+/**
+ * 玄空运界按立春换算（第二阶段加固第 8 项）。
+ *
+ * 背景：mingyu-core 的 resolveXuanKongPeriod(year) 按公历年整年切分三元九运，
+ * 引擎自身在 @soul-atelier/core/period.ts 的注释里承认这是近似——
+ * 「the boundary is technically 立春 of the start year, not Jan 1」。
+ * 于是每年 1 月 1 日 ~ 立春（约 34 天）建造的房子会被判入下一运，
+ * 而同项目的八宅命卦却严格按立春判定，造成两套时间标准自相矛盾。
+ *
+ * 本函数不修改依赖包（AGPL 传染 + node_modules 不可入库），
+ * 而是在调用引擎前把传入年份修正到正确的运界，并把判定依据显式返回给前端。
+ *
+ * @param {number} year  用户填写的建造年
+ * @param {number|null} month 建造月（1-12），缺省则不修正
+ * @param {number|null} day   建造日（1-31），缺省则不修正
+ * @returns {Promise<{year:number, adjusted:boolean, lichunBoundary:boolean, note:string|null}>}
+ */
+async function resolvePeriodByLichun(year, month, day) {
+  const hasFullDate = Number.isFinite(Number(month)) && Number.isFinite(Number(day));
+  if (!hasFullDate) {
+    return {
+      year,
+      adjusted: false,
+      lichunBoundary: false,
+      note: '未提供建造月日，运界按公历年判定。若住宅建于 1 月 1 日至立春之间（约占每年 34 天），可能被误判入下一运，请补填建造月日。',
+    };
+  }
+  // 动态导入 tyme4ts（mingyu-core 的八宅模块已依赖它，此处复用同一份天文算法）
+  const { SolarTerm } = await import('tyme4ts');
+  const m = Number(month);
+  const d = Number(day);
+  // SolarTerm.fromIndex(year, 3) === 该年立春（0=冬至, 1=大寒, 2=雨水, 3=立春）
+  const lichun = SolarTerm.fromIndex(year, 3).getJulianDay().getSolarTime();
+  const beforeLichun = m < lichun.getMonth() || (m === lichun.getMonth() && d < lichun.getDay());
+  // 立春当日按已过立春处理：时刻极精确，日期粒度无法区分当天早晚，故取保守（归本运）口径
+  const note = `运界已按立春换算：${year} 年立春为 ${lichun.getMonth()}月${lichun.getDay()}日 `
+    + `${String(lichun.getHour()).padStart(2, '0')}:${String(lichun.getMinute()).padStart(2, '0')}:${String(lichun.getSecond()).padStart(2, '0')}，`
+    + `所填 ${year}-${m}-${d} ${beforeLichun ? '早于立春，仍属' : '晚于立春，已属'} ${beforeLichun ? year - 1 : year} 年运界。`;
+  if (!beforeLichun) {
+    return { year, adjusted: false, lichunBoundary: true, note };
+  }
+  return { year: year - 1, adjusted: true, lichunBoundary: true, note };
+}
+
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -31,10 +76,16 @@ export default async function handler(req, res) {
     return;
   }
 
-  // 请求体大小防护：Vercel 函数体上限约 4.5MB，多轮图片历史可能累积超限
+  // 请求体大小防护。
+  // Vercel Serverless 函数体上限约 4.5MB（硬上限，平台层先于本函数拒绝），
+  // 因此本守卫必须设在 4MB 以内才有效——原先设为 8MB 时永远不会被触发。
+  // 多轮补拍的 base64 图片历史会累积：720px JPEG q0.8 单帧约 110KB，3 轮 24 帧约 2.6MB。
+  const MAX_BODY_BYTES = 4 * 1024 * 1024;
   const contentLength = Number(req.headers['content-length'] || 0);
-  if (contentLength > 8 * 1024 * 1024) {
-    return res.status(413).json({ error: '请求体过大（>8MB），请点击🔄重新勘测以清空图片历史。' });
+  if (contentLength > MAX_BODY_BYTES) {
+    const msg = '请求体过大（上限 4MB，多轮补拍的图片会累积）。请点击🔄重新勘测以清空图片历史，或减少补拍轮次。';
+    // 同时给出 error 与 status/message，兼容 /api/ai（读 error）与 /api/horosa（读 message）两种消费方
+    return res.status(413).json({ status: 'error', error: msg, message: msg });
   }
 
   const { pathname } = new URL(req.url, `http://${req.headers.host}`);
@@ -124,7 +175,7 @@ export default async function handler(req, res) {
   if (pathname === '/api/horosa' && req.method === 'POST') {
     try {
       const { generateResidentialFengshui } = await import('mingyu-core/residential-fengshui');
-      const { heading, northReference, lat, lng, year, flowYear, birthYear, birthMonth, birthDay, gender, uncertainty } = req.body || {};
+      const { heading, northReference, lat, lng, year, flowYear, birthYear, birthMonth, birthDay, gender, uncertainty, houseMonth, houseDay } = req.body || {};
 
       if (typeof heading !== 'number' || !Number.isFinite(heading) || heading < 0 || heading > 360) {
         return res.status(400).json({ status: 'error', message: '缺少有效的朝向角度 heading（0-360）。' });
@@ -136,11 +187,18 @@ export default async function handler(req, res) {
         });
       }
 
+      // 【第二阶段第 8 项】玄空运界按立春换算：引擎按公历年切分三元九运，
+      // 若住宅建于 1/1~立春之间会被误判入下一运（整盘运星、顺逆、局型、城门全错）。
+      // 此处先把年份修正到正确运界，再交给引擎。
+      const requestedYear = parseInt(year, 10);
+      const period = await resolvePeriodByLichun(requestedYear, houseMonth, houseDay);
+      const effectiveYear = period.year;
+
       // 方位基准：地图拉线得到的是真北方位角；手机罗盘得到的是磁北方位角。
       const ref = northReference === 'true' ? 'true' : 'magnetic';
       const fengshuiInput = {
         facingDegree: heading,
-        year: parseInt(year, 10),
+        year: effectiveYear,
         northReference: ref,
         measurementUncertaintyDegrees: Number.isFinite(Number(uncertainty)) ? Number(uncertainty) : 3,
       };
@@ -163,11 +221,48 @@ export default async function handler(req, res) {
 
       const result = generateResidentialFengshui(fengshuiInput);
 
+      // 【第二阶段第 10 项】把引擎的测量不确定性与口径声明透出到 meta，
+      // 由前端 enginePanel 展示。此前 enginePanel 不读 hData.measurement，
+      // 导致引擎诚实给出的"距分界仅 X°，可能为 A/B 两条山"被完全丢弃。
+      const measurement = result?.xuankong?.measurement ?? null;
+      const bazhaiMeasurement = result?.bazhai?.directionMeasurement ?? null;
+
       return res.status(200).json({
         status: 'success',
         meta: {
           northReference: ref,
           magneticDeclinationDegrees: fengshuiInput.magneticDeclinationDegrees ?? null,
+          // 运界口径（第二阶段第 8 项）
+          requestedHouseYear: requestedYear,
+          effectiveHouseYear: effectiveYear,
+          periodAdjustedByLichun: period.adjusted,
+          periodBoundaryNote: period.note,
+          // 命卦口径声明（第二阶段第 9 项）：
+          // 引擎用"年份除九取余 + 11/4"，与民间"数字和法"结果半数不同，
+          // 不声明会让用户无法与别处对照，也无法判断结论出自哪一派。
+          mingGuaMethod: {
+            method: 'year-mod-9（男 11−余数 / 女 4+余数，五黄男寄坤、女寄艮）',
+            sourceNote: 'mingyu-core 采用年份除九取余配十一/四法，与部分流派使用的"数字和法"结果不同；本结果仅代表本引擎口径。',
+          },
+          // 测量不确定性（第二阶段第 10 项）
+          measurement: measurement
+            ? {
+                sitDegree: measurement.sitDegree ?? null,
+                uncertaintyDegrees: fengshuiInput.measurementUncertaintyDegrees,
+                stability: measurement.stability ?? null,
+                nearestBoundaryDistanceDegrees: measurement.nearestBoundaryDistanceDegrees ?? null,
+                candidateMountains: measurement.candidateMountains ?? null,
+                warnings: measurement.warnings ?? null,
+              }
+            : null,
+          bazhaiMeasurement: bazhaiMeasurement
+            ? {
+                houseGua: bazhaiMeasurement.houseGua ?? null,
+                stability: bazhaiMeasurement.stability ?? null,
+                candidateHouseGua: bazhaiMeasurement.candidateHouseGua ?? bazhaiMeasurement.candidateMountains ?? null,
+                warnings: bazhaiMeasurement.warnings ?? null,
+              }
+            : null,
         },
         data: result,
       });

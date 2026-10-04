@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 700" width="980" height="700" font-family="'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/>
+    </marker>
+    <marker id="arR" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#dc2626"/>
+    </marker>
+    <linearGradient id="gA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eff6ff"/><stop offset="1" stop-color="#dbeafe"/>
+    </linearGradient>
+    <linearGradient id="gB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0fdf4"/><stop offset="1" stop-color="#dcfce7"/>
+    </linearGradient>
+    <linearGradient id="gC" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fef3c7"/><stop offset="1" stop-color="#fde68a"/>
+    </linearGradient>
+    <linearGradient id="gD" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f5f3ff"/><stop offset="1" stop-color="#ede9fe"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="980" height="700" fill="#ffffff"/>
+  <text x="24" y="36" font-size="21" font-weight="700" fill="#0f172a">horosa-fengshui 分层架构与风险总览</text>
+  <text x="24" y="58" font-size="12.5" fill="#64748b">本体 1,646 行 · 核心资产在依赖 mingyu-core 0.4.0 · 依赖方向无环</text>
+
+  <!-- Layer 1 -->
+  <rect x="24" y="78" width="932" height="132" rx="12" fill="url(#gA)" stroke="#60a5fa" stroke-width="1.6"/>
+  <text x="42" y="103" font-size="14.5" font-weight="700" fill="#1e3a8a">① 采集 / 交互层</text>
+  <text x="42" y="122" font-size="11.5" fill="#475569">public/index.html · 单文件 1,233 行</text>
+  <g font-size="11.5" fill="#1e40af">
+    <rect x="42" y="134" width="140" height="30" rx="6" fill="#ffffff" stroke="#93c5fd"/><text x="52" y="153">deviceorientation 罗盘</text>
+    <rect x="192" y="134" width="152" height="30" rx="6" fill="#ffffff" stroke="#93c5fd"/><text x="202" y="153">EMA 滤波 α=0.1</text>
+    <rect x="354" y="134" width="150" height="30" rx="6" fill="#ffffff" stroke="#93c5fd"/><text x="364" y="153">Leaflet + Turf 拉线</text>
+    <rect x="514" y="134" width="164" height="30" rx="6" fill="#ffffff" stroke="#93c5fd"/><text x="524" y="153">八方位采集状态机</text>
+    <rect x="688" y="134" width="120" height="30" rx="6" fill="#ffffff" stroke="#93c5fd"/><text x="698" y="153">SSE 行缓冲</text>
+    <rect x="818" y="134" width="120" height="30" rx="6" fill="#ffffff" stroke="#93c5fd"/><text x="828" y="153">300ms 节流渲染</text>
+    <rect x="42" y="170" width="204" height="30" rx="6" fill="#ffffff" stroke="#93c5fd"/><text x="52" y="189">13 条 System Instruction</text>
+    <rect x="256" y="170" width="180" height="30" rx="6" fill="#ffffff" stroke="#93c5fd"/><text x="266" y="189">verifyAIReply 幻觉核对</text>
+    <rect x="446" y="170" width="240" height="30" rx="6" fill="#ffffff" stroke="#93c5fd"/><text x="456" y="189">九宫格 / 宜忌 / 建议 三面板渲染</text>
+    <rect x="696" y="170" width="242" height="30" rx="6" fill="#ffffff" stroke="#93c5fd"/><text x="706" y="189">勘测记忆 localStorage（保留 2 条）</text>
+  </g>
+
+  <!-- arrows down -->
+  <path d="M300,212 L300,246" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ar)" fill="none"/>
+  <text x="308" y="234" font-size="11" fill="#64748b">POST /api/horosa</text>
+  <path d="M760,212 L760,246" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ar)" fill="none"/>
+  <text x="640" y="234" font-size="11" fill="#64748b">POST /api/ai （SSE）</text>
+
+  <!-- Layer 2 -->
+  <rect x="24" y="250" width="440" height="112" rx="12" fill="url(#gB)" stroke="#4ade80" stroke-width="1.6"/>
+  <text x="42" y="275" font-size="14.5" font-weight="700" fill="#14532d">② 代理 / 校验层</text>
+  <text x="42" y="294" font-size="11.5" fill="#475569">api/index.js · 181 行 · Vercel Serverless 单 handler</text>
+  <g font-size="11.5" fill="#166534">
+    <rect x="42" y="306" width="126" height="28" rx="6" fill="#ffffff" stroke="#86efac"/><text x="51" y="324">WMM 磁偏角 + 缓存</text>
+    <rect x="178" y="306" width="120" height="28" rx="6" fill="#ffffff" stroke="#86efac"/><text x="187" y="324">排盘入参强校验</text>
+    <rect x="308" y="306" width="140" height="28" rx="6" fill="#ffffff" stroke="#86efac"/><text x="317" y="324">高德静态图代理</text>
+    <rect x="42" y="338" width="180" height="18" rx="4" fill="#ffffff" stroke="#86efac"/><text x="51" y="351" font-size="11">SSE 原样透传 + 防缓冲头</text>
+  </g>
+
+  <!-- Layer 2b -->
+  <rect x="484" y="250" width="472" height="112" rx="12" fill="url(#gC)" stroke="#fbbf24" stroke-width="1.6"/>
+  <text x="502" y="275" font-size="14.5" font-weight="700" fill="#78350f">③ AI 解读层（外部 · 无状态）</text>
+  <text x="502" y="294" font-size="11.5" fill="#475569">AI 被 13 条铁律降位为「讲解员」，禁止重算任何星盘数字</text>
+  <g font-size="11.5" fill="#92400e">
+    <rect x="502" y="306" width="150" height="28" rx="6" fill="#ffffff" stroke="#fcd34d"/><text x="511" y="324">Gemini 3.1 Pro</text>
+    <rect x="662" y="306" width="164" height="28" rx="6" fill="#ffffff" stroke="#fcd34d"/><text x="671" y="324">GLM-5.3-Flash 多模态</text>
+    <rect x="836" y="306" width="106" height="28" rx="6" fill="#ffffff" stroke="#fcd34d"/><text x="845" y="324">DeepSeek</text>
+    <rect x="502" y="338" width="264" height="18" rx="4" fill="#ffffff" stroke="#fcd34d"/><text x="511" y="351" font-size="11">reasoning_content 独立通道 · 65536 max_tokens</text>
+  </g>
+
+  <path d="M244,364 L244,398" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ar)" fill="none"/>
+  <text x="252" y="386" font-size="11" fill="#64748b">await import('mingyu-core/residential-fengshui')</text>
+
+  <!-- Layer 3 -->
+  <rect x="24" y="402" width="932" height="106" rx="12" fill="url(#gD)" stroke="#a78bfa" stroke-width="1.6"/>
+  <text x="42" y="427" font-size="14.5" font-weight="700" fill="#4c1d95">④ 确定性术数引擎（mingyu-core 0.4.0）—— 项目的真正资产</text>
+  <g font-size="11.5" fill="#5b21b6">
+    <rect x="42" y="440" width="212" height="52" rx="6" fill="#ffffff" stroke="#c4b5fd"/><text x="52" y="459" font-weight="600">xuan_kong/</text><text x="52" y="476">飞星盘 · 局型 · 组合 · 城门诀</text><text x="52" y="488">流年月紫白 · 五气</text>
+    <rect x="264" y="440" width="212" height="52" rx="6" fill="#ffffff" stroke="#c4b5fd"/><text x="274" y="459" font-weight="600">ba_zhai/</text><text x="274" y="476">立春换年 · 命卦 · 大游年</text><text x="274" y="488">五黄二黑压制</text>
+    <rect x="486" y="440" width="212" height="52" rx="6" fill="#ffffff" stroke="#c4b5fd"/><text x="496" y="459" font-weight="600">direction/</text><text x="496" y="476">二十四山 · 后天八卦</text><text x="496" y="488">分界线判定 · 真北换算</text>
+    <rect x="708" y="440" width="232" height="52" rx="6" fill="#ffffff" stroke="#c4b5fd"/><text x="718" y="459" font-weight="600">@soul-atelier/*</text><text x="718" y="476">flyChart 洛书飞布内核</text><text x="718" y="488">period 三元九运 · mountains 阴阳</text>
+  </g>
+
+  <!-- risk band -->
+  <rect x="24" y="528" width="932" height="66" rx="10" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.6" stroke-dasharray="6 4"/>
+  <text x="42" y="551" font-size="13.5" font-weight="700" fill="#991b1b">⚠ 契约断裂：采集过程污染坐向基准（P0-1）</text>
+  <text x="42" y="571" font-size="11.5" fill="#7f1d1d">lockAndAnalyze() 在 captureSequence() <tspan font-weight="700">结束后</tspan>才读 currentHeading 作为坐向；而采集已把它改写为最后一个采集方位</text>
+  <text x="42" y="587" font-size="11.5" fill="#7f1d1d">偏差 20°~45°（平均 28°）= 二十四山 2~3 个山位错判 → 整张飞星盘作废，且界面/AI/机器核对三处均无异常信号</text>
+
+  <!-- bottom facts -->
+  <g font-size="11.5">
+    <rect x="24" y="612" width="298" height="66" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="38" y="633" font-weight="700" fill="#0f172a">测试盲区</text>
+    <text x="38" y="651" fill="#475569">test-engine.mjs 23 项全通过，</text>
+    <text x="38" y="668" fill="#475569">但只测引擎，不测「采集→排盘」链路</text>
+
+    <rect x="336" y="612" width="298" height="66" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="350" y="633" font-weight="700" fill="#0f172a">被浪费的引擎能力</text>
+    <text x="350" y="651" fill="#475569">evidenceAnalysis / replacement /</text>
+    <text x="350" y="668" fill="#475569">measurement.warnings 等 8 个字段未使用</text>
+
+    <rect x="648" y="612" width="308" height="66" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="662" y="633" font-weight="700" fill="#0f172a">三处字符串契约</text>
+    <text x="662" y="651" fill="#475569">northReference 枚举 · gong 数字键</text>
+    <text x="662" y="668" fill="#475569">山向正则；洛书布局烧进前端</text>
+  </g>
+</svg>
